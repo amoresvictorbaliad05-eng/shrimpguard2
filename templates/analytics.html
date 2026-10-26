@@ -9,17 +9,18 @@
 </head>
 
 <body>
+{% include "_icon_sprite.html" %}
 
 <div class="sidebar">
-    <div class="logo">🦐 <span>ShrimpGuard</span></div>
+    <div class="logo"><svg class="ui-icon brand-icon"><use href="#icon-shrimp"></use></svg> <span>ShrimpGuard</span></div>
     <p class="subtitle">Water Quality Monitoring</p>
     <nav>
-        <a href="/">🏠 Dashboard</a>
-        <a href="/monitoring">📡 Real-time Monitoring</a>
-        <a href="/historical">📊 Historical Data</a>
-        <a href="/analytics" class="active">📈 Analytics & Reports</a>
-        <a href="/alerts">🚨 Alerts and Notifications</a>
-        <a href="/settings">⚙️ Settings</a>
+        <a href="/"><svg class="ui-icon"><use href="#icon-dashboard"></use></svg> Dashboard</a>
+        <a href="/monitoring"><svg class="ui-icon"><use href="#icon-monitor"></use></svg> Real-time Monitoring</a>
+        <a href="/historical"><svg class="ui-icon"><use href="#icon-history"></use></svg> Historical Data</a>
+        <a href="/analytics" class="active"><svg class="ui-icon"><use href="#icon-chart"></use></svg> Analytics &amp; Reports</a>
+        <a href="/alerts"><svg class="ui-icon"><use href="#icon-alert"></use></svg> Alerts and Notifications</a>
+        <a href="/settings"><svg class="ui-icon"><use href="#icon-settings"></use></svg> Settings</a>
     </nav>
     {% include "_logout_form.html" %}
 </div>
@@ -31,14 +32,14 @@
             <p>Operational insights and farm health summary based on your latest sensor readings.</p>
         </div>
         <div class="header-info">
-            <button id="notification-button" class="notification-button" type="button" aria-label="View notifications">🔔</button>
+            <button id="notification-button" class="notification-button" type="button" aria-label="View notifications"><svg class="ui-icon"><use href="#icon-bell"></use></svg></button>
             <div class="time"><span id="time"></span></div>
         </div>
     </header>
 
     <section class="cards">
         <div class="card">
-            <div class="icon">📊</div>
+            <div class="icon"><svg class="ui-icon"><use href="#icon-chart"></use></svg></div>
             <div>
                 <h3>Average Water Quality</h3>
                 <h2>87 / 100</h2>
@@ -47,7 +48,7 @@
         </div>
 
         <div class="card">
-            <div class="icon">🚨</div>
+            <div class="icon"><svg class="ui-icon"><use href="#icon-alert"></use></svg></div>
             <div>
                 <h3>Active Alerts</h3>
                 <h2>2</h2>
@@ -56,7 +57,7 @@
         </div>
 
         <div class="card">
-            <div class="icon">💡</div>
+            <div class="icon"><svg class="ui-icon"><use href="#icon-lightbulb"></use></svg></div>
             <div>
                 <h3>Recommended Action</h3>
                 <h2>Adjust pH</h2>
@@ -65,7 +66,7 @@
         </div>
 
         <div class="card">
-            <div class="icon">⏱️</div>
+            <div class="icon"><svg class="ui-icon"><use href="#icon-clock"></use></svg></div>
             <div>
                 <h3>Monitoring Status</h3>
                 <h2>Live</h2>
@@ -81,8 +82,6 @@
                 <tr>
                     <th>Temperature</th>
                     <th>pH</th>
-                    <th>Salinity</th>
-                    <th>Turbidity</th>
                 </tr>
             </thead>
             <tbody>
@@ -95,14 +94,6 @@
                         <div id="ph-adjustment" class="sensor-value">--</div>
                         <small id="ph-status" class="sensor-status">Waiting for reading</small>
                     </td>
-                    <td>
-                        <div id="salinity-adjustment" class="sensor-value">--</div>
-                        <small id="salinity-status" class="sensor-status">Waiting for reading</small>
-                    </td>
-                    <td>
-                        <div id="turbidity-adjustment" class="sensor-value">--</div>
-                        <small id="turbidity-status" class="sensor-status">Waiting for reading</small>
-                    </td>
                 </tr>
             </tbody>
         </table>
@@ -112,26 +103,26 @@
         <div class="panel">
             <h2>Farm Health Summary</h2>
             <div class="status-box">
-                <h3>Overall pond condition is stable but requires attention on pH and turbidity.</h3>
-                <p>Most parameters remain within the desired operating range, but the latest readings suggest preventive action should be taken to avoid shrimp stress.</p>
+                <h3>Overall pond condition is stable when both temperature and pH remain in range.</h3>
+                <p>Current monitoring focuses on the active sensor set so the latest readings can be checked against the current operational targets.</p>
             </div>
         </div>
 
         <div class="panel">
             <h2>Key Findings</h2>
             <ul class="recommendations">
-                <li>pH is slightly outside the ideal range and should be corrected soon.</li>
-                <li>Turbidity is elevated, which may indicate sediment buildup or poor filtration.</li>
-                <li>Temperature remains stable and does not currently indicate immediate risk.</li>
+                <li>pH is the primary variable to monitor for stable pond conditions.</li>
+                <li>Temperature remains the other key factor affecting shrimp health and water quality.</li>
+                <li>Monitoring should remain focused on the active sensor set until new instrumentation is available.</li>
             </ul>
         </div>
 
         <div class="panel">
             <h2>Recommended Operations</h2>
             <ul class="recommendations">
-                <li>Increase water filtration and inspect pond circulation.</li>
-                <li>Apply pH balancing treatment during the next maintenance check.</li>
-                <li>Continue monitoring every cycle to detect trend changes early.</li>
+                <li>Keep temperature and pH within the ideal operating range.</li>
+                <li>Check pond conditions regularly and confirm the monitoring cycle is consistent.</li>
+                <li>Continue recording readings as the temporary sensor setup remains in place.</li>
             </ul>
         </div>
 

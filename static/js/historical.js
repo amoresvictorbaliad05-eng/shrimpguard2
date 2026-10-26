@@ -1,12 +1,10 @@
 const historyKey = "shrimpGuardHistory";
 const parameterLabels = {
     temperature: "Temperature",
-    ph: "pH Level",
-    salinity: "Salinity",
-    turbidity: "Turbidity"
+    ph: "pH Level"
 };
-const units = { temperature: "°C", ph: "pH", salinity: "ppt", turbidity: "NTU" };
-const colors = { temperature: "#2f6fbd", ph: "#2f8a57", salinity: "#d97706", turbidity: "#9b4dca" };
+const units = { temperature: "°C", ph: "pH" };
+const colors = { temperature: "#2f6fbd", ph: "#2f8a57" };
 
 function updateDeviceTime() {
     document.getElementById("time").textContent = new Date().toLocaleTimeString([], {
@@ -16,8 +14,7 @@ function updateDeviceTime() {
 
 function statusFor(reading) {
     return reading.temperature < 26 || reading.temperature > 32 || reading.ph < 7.5 ||
-        reading.ph > 8.5 || reading.salinity < 15 || reading.salinity > 30 || reading.turbidity > 30
-        ? "Needs attention" : "Good";
+        reading.ph > 8.5 ? "Needs attention" : "Good";
 }
 
 function localDate(reading) {
@@ -126,7 +123,7 @@ function updateTable(history) {
     const body = document.getElementById("readings-body");
     body.innerHTML = history.slice().reverse().map((reading) => {
         const date = new Date(reading.recorded_at);
-        return `<tr><td>${date.toLocaleDateString()}</td><td>${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td><td>${reading.temperature} °C</td><td>${reading.ph}</td><td>${reading.salinity} ppt</td><td>${reading.turbidity} NTU</td><td><span class="table-status ${statusFor(reading) === "Good" ? "good" : "warning"}">${statusFor(reading)}</span></td></tr>`;
+        return `<tr><td>${date.toLocaleDateString()}</td><td>${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td><td>${reading.temperature} °C</td><td>${reading.ph}</td><td><span class="table-status ${statusFor(reading) === "Good" ? "good" : "warning"}">${statusFor(reading)}</span></td></tr>`;
     }).join("");
     document.getElementById("table-empty").hidden = history.length > 0;
 }
@@ -136,12 +133,78 @@ function applyFilters() {
     const parameters = selectedParameters();
     const hasData = history.length > 0;
     document.getElementById("history-count").textContent = `${history.length} reading${history.length === 1 ? "" : "s"}`;
+    document.getElementById("history-export-button").disabled = readHistory().length === 0;
     document.getElementById("history-empty").hidden = hasData;
     if (hasData) drawChart(history, parameters);
     updateLegend(parameters); updateSummary(history, parameters); updateTable(history);
     updateReadingIndicators(history);
 }
 
+document.getElementById("history-export-button").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+
+    try {
+        const response = await fetch("/historical/export", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ readings: readHistory() })
+        });
+        if (response.redirected) {
+            throw new Error("Your session has expired. Sign in again to download historical data.");
+        }
+        if (!response.ok || !(response.headers.get("Content-Type") || "").includes("spreadsheetml")) {
+            let message = "The historical data could not be exported.";
+            try {
+                const result = await response.json();
+                message = result.error || message;
+            } catch (error) {
+                console.error("The export server returned an unexpected response:", error);
+            }
+            throw new Error(message);
+        }
+
+        const downloadUrl = URL.createObjectURL(await response.blob());
+        const downloadLink = document.createElement("a");
+        downloadLink.href = downloadUrl;
+        downloadLink.download = "shrimpguard-historical-data.xlsx";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        downloadLink.remove();
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+    } catch (error) {
+        console.error("Unable to export historical readings:", error);
+        window.alert(`Unable to download historical data: ${error.message}`);
+    } finally {
+        button.disabled = readHistory().length === 0;
+        button.removeAttribute("aria-busy");
+    }
+});
+
 document.getElementById("history-filter").addEventListener("submit", (event) => { event.preventDefault(); applyFilters(); });
-updateDeviceTime(); setInterval(updateDeviceTime, 1000); applyFilters();
+async function loadHistory() {
+    try {
+        const response = await fetch("/api/readings/history");
+        if (!response.ok) {
+            throw new Error(`History request failed with status ${response.status}.`);
+        }
+
+        const history = await response.json();
+        if (!Array.isArray(history)) {
+            throw new Error("The history response has an invalid format.");
+        }
+
+        if (history.length) {
+            localStorage.setItem(historyKey, JSON.stringify(history));
+            localStorage.setItem("shrimpGuardLatest", JSON.stringify(history[history.length - 1]));
+        }
+    } catch (error) {
+        console.warn("Unable to load saved sensor history; showing browser history instead:", error);
+    }
+
+    applyFilters();
+}
+
+updateDeviceTime(); setInterval(updateDeviceTime, 1000); loadHistory();
 window.addEventListener("storage", applyFilters); window.addEventListener("resize", applyFilters);

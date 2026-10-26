@@ -9,16 +9,23 @@
 </head>
 
 <body class="login-page">
+{% include "_icon_sprite.html" %}
 <main class="login-shell">
 	<section class="login-panel" aria-labelledby="login-title">
 		<div class="login-brand">
-			<span class="login-brand-mark" aria-hidden="true">🦐</span>
+			<span class="login-brand-mark" aria-hidden="true"><svg class="ui-icon brand-icon"><use href="#icon-shrimp"></use></svg></span>
 			<span>ShrimpGuard</span>
 		</div>
 
 		<p class="eyebrow">Secure access</p>
 		<h1 id="login-title">Sign in</h1>
 		<p class="login-intro">Use your account to continue.</p>
+
+		{% with messages = get_flashed_messages(with_categories=true) %}
+		{% for category, message in messages %}
+		<div class="login-success" role="status">{{ message }}</div>
+		{% endfor %}
+		{% endwith %}
 
 		{% if error %}
 		<div class="login-error" role="alert">{{ error }}</div>
@@ -27,14 +34,15 @@
 		<form class="login-form" method="post" action="{{ url_for('login') }}">
 			<input type="hidden" name="csrf_token" value="{{ session['login_csrf_token'] }}">
 
-			<label for="user-name">Username</label>
-			<input id="user-name" name="user_name" type="text" autocomplete="username" maxlength="80" required autofocus>
+			<label for="user-name">Username or email</label>
+			<input id="user-name" name="user_name" type="text" autocomplete="username" maxlength="255" placeholder="Markiplier or markiplier@gmail.com" required autofocus>
 
 			<label for="password">Password</label>
-			<input id="password" name="password" type="password" autocomplete="current-password" required>
+			<input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
 
 			<button type="submit">Sign in</button>
 		</form>
+		<p class="login-signup-link">New to ShrimpGuard? <a href="{{ url_for('signup') }}">Create an account</a></p>
 	</section>
 </main>
 </body>

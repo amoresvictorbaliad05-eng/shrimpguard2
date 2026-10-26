@@ -9,16 +9,18 @@
 </head>
 
 <body class="settings-page">
+{% include "_icon_sprite.html" %}
+
 <div class="sidebar">
-    <div class="logo">🦐 <span>ShrimpGuard</span></div>
+    <div class="logo"><svg class="ui-icon brand-icon"><use href="#icon-shrimp"></use></svg> <span>ShrimpGuard</span></div>
     <p class="subtitle">Water Quality Monitoring</p>
     <nav>
-        <a href="/">🏠 Dashboard</a>
-        <a href="/monitoring">📡 Real-time Monitoring</a>
-        <a href="/historical">📊 Historical Data</a>
-        <a href="/analytics">📈 Analytics &amp; Reports</a>
-        <a href="/alerts">🚨 Alerts and Notifications</a>
-        <a href="/settings" class="active">⚙️ Settings</a>
+        <a href="/"><svg class="ui-icon"><use href="#icon-dashboard"></use></svg> Dashboard</a>
+        <a href="/monitoring"><svg class="ui-icon"><use href="#icon-monitor"></use></svg> Real-time Monitoring</a>
+        <a href="/historical"><svg class="ui-icon"><use href="#icon-history"></use></svg> Historical Data</a>
+        <a href="/analytics"><svg class="ui-icon"><use href="#icon-chart"></use></svg> Analytics &amp; Reports</a>
+        <a href="/alerts"><svg class="ui-icon"><use href="#icon-alert"></use></svg> Alerts and Notifications</a>
+        <a href="/settings" class="active"><svg class="ui-icon"><use href="#icon-settings"></use></svg> Settings</a>
     </nav>
     {% include "_logout_form.html" %}
 </div>

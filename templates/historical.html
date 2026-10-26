@@ -9,17 +9,18 @@
 </head>
 
 <body>
+{% include "_icon_sprite.html" %}
 
 <div class="sidebar">
-    <div class="logo">🦐 <span>ShrimpGuard</span></div>
+    <div class="logo"><svg class="ui-icon brand-icon"><use href="#icon-shrimp"></use></svg> <span>ShrimpGuard</span></div>
     <p class="subtitle">Water Quality Monitoring</p>
     <nav>
-        <a href="/">🏠 Dashboard</a>
-        <a href="/monitoring">📡 Real-time Monitoring</a>
-        <a href="/historical" class="active">📊 Historical Data</a>
-        <a href="/analytics">📈 Analytics & Reports</a>
-        <a href="/alerts">🚨 Alerts and Notifications</a>
-        <a href="/settings">⚙️ Settings</a>
+        <a href="/"><svg class="ui-icon"><use href="#icon-dashboard"></use></svg> Dashboard</a>
+        <a href="/monitoring"><svg class="ui-icon"><use href="#icon-monitor"></use></svg> Real-time Monitoring</a>
+        <a href="/historical" class="active"><svg class="ui-icon"><use href="#icon-history"></use></svg> Historical Data</a>
+        <a href="/analytics"><svg class="ui-icon"><use href="#icon-chart"></use></svg> Analytics &amp; Reports</a>
+        <a href="/alerts"><svg class="ui-icon"><use href="#icon-alert"></use></svg> Alerts and Notifications</a>
+        <a href="/settings"><svg class="ui-icon"><use href="#icon-settings"></use></svg> Settings</a>
     </nav>
     {% include "_logout_form.html" %}
 </div>
@@ -31,7 +32,7 @@
             <p>Review previous water quality readings and identify changes over time.</p>
         </div>
         <div class="header-info">
-            <button id="notification-button" class="notification-button" type="button" aria-label="View notifications">🔔</button>
+            <button id="notification-button" class="notification-button" type="button" aria-label="View notifications"><svg class="ui-icon"><use href="#icon-bell"></use></svg></button>
             <div class="time"><span id="time"></span></div>
         </div>
     </header>
@@ -48,8 +49,6 @@
                     <option value="all">All parameters</option>
                     <option value="temperature">Temperature</option>
                     <option value="ph">pH Level</option>
-                    <option value="salinity">Salinity</option>
-                    <option value="turbidity">Turbidity</option>
                 </select>
             </label>
             <label>
@@ -98,7 +97,13 @@
                     <p class="eyebrow">Visual history</p>
                     <h2 id="chart-title">Water Quality Trend</h2>
                 </div>
-                <span id="history-count">0 readings</span>
+                <div class="history-export-actions">
+                    <span id="history-count">0 readings</span>
+                    <button id="history-export-button" class="history-export-button" type="button">
+                        <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4" /></svg>
+                        Download
+                    </button>
+                </div>
             </div>
             <div class="historical-chart-wrap">
                 <canvas id="historical-chart" aria-label="Historical water quality trend graph"></canvas>
@@ -118,7 +123,7 @@
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr><th>Date</th><th>Time</th><th>Temperature</th><th>pH</th><th>Salinity</th><th>Turbidity</th><th>Status</th></tr>
+                    <tr><th>Date</th><th>Time</th><th>Temperature</th><th>pH</th><th>Status</th></tr>
                 </thead>
                 <tbody id="readings-body"></tbody>
             </table>

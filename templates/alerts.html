@@ -9,17 +9,18 @@
 </head>
 
 <body>
+{% include "_icon_sprite.html" %}
 
 <div class="sidebar">
-    <div class="logo">🦐 <span>ShrimpGuard</span></div>
+    <div class="logo"><svg class="ui-icon brand-icon"><use href="#icon-shrimp"></use></svg> <span>ShrimpGuard</span></div>
     <p class="subtitle">Water Quality Monitoring</p>
     <nav>
-        <a href="/">🏠 Dashboard</a>
-        <a href="/monitoring">📡 Real-time Monitoring</a>
-        <a href="/historical">📊 Historical Data</a>
-        <a href="/analytics">📈 Analytics & Reports</a>
-        <a href="/alerts" class="active">🚨 Alerts and Notifications</a>
-        <a href="/settings">⚙️ Settings</a>
+        <a href="/"><svg class="ui-icon"><use href="#icon-dashboard"></use></svg> Dashboard</a>
+        <a href="/monitoring"><svg class="ui-icon"><use href="#icon-monitor"></use></svg> Real-time Monitoring</a>
+        <a href="/historical"><svg class="ui-icon"><use href="#icon-history"></use></svg> Historical Data</a>
+        <a href="/analytics"><svg class="ui-icon"><use href="#icon-chart"></use></svg> Analytics &amp; Reports</a>
+        <a href="/alerts" class="active"><svg class="ui-icon"><use href="#icon-alert"></use></svg> Alerts and Notifications</a>
+        <a href="/settings"><svg class="ui-icon"><use href="#icon-settings"></use></svg> Settings</a>
     </nav>
     {% include "_logout_form.html" %}
 </div>
@@ -31,14 +32,14 @@
             <p>Live updates generated from the latest pond sensor readings.</p>
         </div>
         <div class="header-info">
-            <button id="notification-button" class="notification-button" type="button" aria-label="View notifications">🔔</button>
+            <button id="notification-button" class="notification-button" type="button" aria-label="View notifications"><svg class="ui-icon"><use href="#icon-bell"></use></svg></button>
             <div class="time"><span id="time"></span></div>
         </div>
     </header>
 
     <section class="cards">
         <div class="card">
-            <div class="icon">🚨</div>
+            <div class="icon"><svg class="ui-icon"><use href="#icon-alert"></use></svg></div>
             <div>
                 <h3>Critical Alerts</h3>
                 <h2 id="critical-alerts-count">0</h2>
@@ -47,7 +48,7 @@
         </div>
 
         <div class="card">
-            <div class="icon">⚠️</div>
+            <div class="icon"><svg class="ui-icon"><use href="#icon-alert"></use></svg></div>
             <div>
                 <h3>Warning Alerts</h3>
                 <h2 id="warning-alerts-count">0</h2>
@@ -56,7 +57,7 @@
         </div>
 
         <div class="card">
-            <div class="icon">✅</div>
+            <div class="icon"><svg class="ui-icon"><use href="#icon-check-circle"></use></svg></div>
             <div>
                 <h3>Resolved Alerts</h3>
                 <h2 id="resolved-alerts-count">0</h2>
@@ -65,7 +66,7 @@
         </div>
 
         <div class="card">
-            <div class="icon">📩</div>
+            <div class="icon"><svg class="ui-icon"><use href="#icon-message"></use></svg></div>
             <div>
                 <h3>Unread Notifications</h3>
                 <h2 id="unread-notifications-count">0</h2>

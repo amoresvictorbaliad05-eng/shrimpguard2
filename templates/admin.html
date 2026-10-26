@@ -9,12 +9,13 @@
 </head>
 
 <body class="admin-page">
+{% include "_icon_sprite.html" %}
 <div class="sidebar">
-    <div class="logo">🦐 <span>ShrimpGuard</span></div>
+    <div class="logo"><svg class="ui-icon brand-icon"><use href="#icon-shrimp"></use></svg> <span>ShrimpGuard</span></div>
     <p class="subtitle">Administration</p>
     <nav>
-        <a href="/admin/dashboard">▦ Admin Dashboard</a>
-        <a href="/admin" class="active">♙ User Management</a>
+        <a href="/admin/dashboard"><svg class="ui-icon"><use href="#icon-dashboard"></use></svg> Admin Dashboard</a>
+        <a href="/admin" class="active"><svg class="ui-icon"><use href="#icon-users"></use></svg> User Management</a>
     </nav>
     {% include "_logout_form.html" %}
 </div>
@@ -23,7 +24,7 @@
     <header class="admin-user-header">
         <h1>User Management</h1>
         <button class="admin-add-user" type="button">
-            <span aria-hidden="true">+</span> Add User
+            <svg class="ui-icon" aria-hidden="true"><use href="#icon-plus"></use></svg> Add User
         </button>
     </header>
 
@@ -31,7 +32,7 @@
         <article class="admin-metric">
             <div class="admin-metric-top">
                 <span class="admin-metric-label">Total Users</span>
-                <span class="admin-metric-icon" aria-hidden="true">♙</span>
+                <span class="admin-metric-icon" aria-hidden="true"><svg class="ui-icon"><use href="#icon-users"></use></svg></span>
             </div>
             <strong class="admin-metric-value">{{ total_users }}</strong>
             <p class="admin-metric-note">Registered accounts</p>
@@ -40,7 +41,7 @@
         <article class="admin-metric">
             <div class="admin-metric-top">
                 <span class="admin-metric-label">Active Users</span>
-                <span class="admin-metric-icon" aria-hidden="true">●</span>
+                <span class="admin-metric-icon" aria-hidden="true"><svg class="ui-icon"><use href="#icon-check-circle"></use></svg></span>
             </div>
             <strong class="admin-metric-value">{{ active_users }}</strong>
             <p class="admin-metric-note">Currently active accounts</p>
@@ -49,7 +50,7 @@
         <article class="admin-metric">
             <div class="admin-metric-top">
                 <span class="admin-metric-label">Inactive Users</span>
-                <span class="admin-metric-icon" aria-hidden="true">◷</span>
+                <span class="admin-metric-icon" aria-hidden="true"><svg class="ui-icon"><use href="#icon-clock"></use></svg></span>
             </div>
             <strong class="admin-metric-value">{{ inactive_users }}</strong>
             <p class="admin-metric-note">Inactive accounts</p>
@@ -58,7 +59,7 @@
         <article class="admin-metric">
             <div class="admin-metric-top">
                 <span class="admin-metric-label">System Status</span>
-                <span class="admin-metric-icon" aria-hidden="true">⌁</span>
+                <span class="admin-metric-icon" aria-hidden="true"><svg class="ui-icon"><use href="#icon-activity"></use></svg></span>
             </div>
             <strong class="admin-metric-value admin-system-value{% if not system_online %} offline{% endif %}">
                 {{ "Operational" if system_online else "Unavailable" }}
@@ -81,7 +82,7 @@
         <div class="admin-user-dialog-heading">
             <h2 id="add-user-title">Add User</h2>
             <form method="dialog">
-                <button class="admin-dialog-close" type="submit" aria-label="Close">×</button>
+                <button class="admin-dialog-close" type="submit" aria-label="Close"><svg class="ui-icon"><use href="#icon-x"></use></svg></button>
             </form>
         </div>
         <form class="admin-user-form" method="post" action="{{ url_for('create_user') }}">
@@ -113,7 +114,7 @@
         <div class="admin-user-dialog-heading">
             <h2 id="edit-user-title">Edit User</h2>
             <form method="dialog">
-                <button class="admin-dialog-close" type="submit" aria-label="Close">×</button>
+                <button class="admin-dialog-close" type="submit" aria-label="Close"><svg class="ui-icon"><use href="#icon-x"></use></svg></button>
             </form>
         </div>
         <form class="admin-user-form" method="post" action="{{ url_for('edit_user') }}">

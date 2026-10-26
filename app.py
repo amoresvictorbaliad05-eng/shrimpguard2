@@ -1,15 +1,19 @@
 import hmac
+import io
+import math
 import os
 import re
 import secrets
+import zipfile
 from datetime import datetime, timedelta
 from functools import wraps
+from xml.sax.saxutils import escape
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, send_file, session, url_for
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
+from sqlalchemy import insert, select, text
 from sqlalchemy.engine import URL
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
@@ -39,33 +43,20 @@ app.config["SECRET_KEY"] = load_secret_key()
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 app.config["SESSION_REFRESH_EACH_REQUEST"] = True
 
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = int(os.getenv("DB_PORT") or "3307")
-DB_NAME = os.getenv("DB_NAME", "shrimpguard_users")
-
-
 def get_database_uri():
     configured_database_url = os.getenv("DATABASE_URL")
     if configured_database_url:
         return configured_database_url
 
-    if any(
-        os.getenv(env_var) is not None
-        for env_var in ("DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME")
-    ):
-        return URL.create(
-            "mysql+pymysql",
-            username=DB_USER,
-            password=DB_PASSWORD or None,
-            host=DB_HOST,
-            port=DB_PORT,
-            database=DB_NAME,
-            query={"charset": "utf8mb4"},
-        )
-
-    return "sqlite:///dashboard.db"
+    return URL.create(
+        "mysql+pymysql",
+        username=os.getenv("DB_USER", "root"),
+        password=os.getenv("DB_PASSWORD") or None,
+        host=os.getenv("DB_HOST", "127.0.0.1"),
+        port=int(os.getenv("DB_PORT") or "3306"),
+        database=os.getenv("DB_NAME", "shrimpguard_users"),
+        query={"charset": "utf8mb4"},
+    )
 
 
 app.config["SQLALCHEMY_DATABASE_URI"] = get_database_uri()
@@ -73,6 +64,20 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 
 db = SQLAlchemy(app)
+
+sensor_readings = db.Table(
+    "sensors",
+    db.metadata,
+    db.Column("ph_level", db.Float, nullable=False),
+    db.Column("temperature", db.Float, nullable=False),
+    db.Column("date", db.String(45), nullable=False),
+    db.Column("status", db.String(45), nullable=False),
+    schema=(
+        None
+        if str(app.config["SQLALCHEMY_DATABASE_URI"]).startswith("sqlite")
+        else "shrimpguard_users"
+    ),
+)
 
 
 @app.context_processor
@@ -93,26 +98,13 @@ def table_args_for_schema(schema_name):
     return {"schema": schema_name}
 
 
-class PondReading(db.Model):
-    __tablename__ = "pond_readings"
-    __table_args__ = table_args_for_schema("shrimpguard_sensors")
-
-    id = db.Column(db.Integer, primary_key=True)
-    temperature = db.Column(db.Float, nullable=False)
-    ph = db.Column(db.Float, nullable=False)
-    salinity = db.Column(db.Float, nullable=False)
-    turbidity = db.Column(db.Float, nullable=False)
-    recorded_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "temperature": self.temperature,
-            "ph": self.ph,
-            "salinity": self.salinity,
-            "turbidity": self.turbidity,
-            "recorded_at": self.recorded_at.isoformat() if self.recorded_at else None,
-        }
+def serialize_sensor_reading(reading):
+    return {
+        "temperature": reading["temperature"],
+        "ph": reading["ph_level"],
+        "recorded_at": reading["date"],
+        "status": reading["status"],
+    }
 
 
 class AlertLog(db.Model):
@@ -210,44 +202,216 @@ with app.app_context():
 @app.route("/api/readings", methods=["POST"])
 def create_reading():
     payload = request.get_json(silent=True) or {}
-    required_fields = ["temperature", "ph", "salinity", "turbidity"]
+    required_fields = ["temperature", "ph"]
 
     if not all(field in payload for field in required_fields):
         return jsonify({"error": "Missing required water quality fields."}), 400
 
     try:
-        reading = PondReading(
-            temperature=float(payload["temperature"]),
-            ph=float(payload["ph"]),
-            salinity=float(payload["salinity"]),
-            turbidity=float(payload["turbidity"]),
-            recorded_at=datetime.fromisoformat(payload["recorded_at"]) if payload.get("recorded_at") else datetime.utcnow(),
+        temperature = float(payload["temperature"])
+        ph = float(payload["ph"])
+        recorded_at = (
+            datetime.fromisoformat(payload["recorded_at"])
+            if payload.get("recorded_at")
+            else datetime.utcnow()
         )
-        db.session.add(reading)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Reading values must be valid numbers and date."}), 400
+    if not math.isfinite(temperature) or not math.isfinite(ph):
+        return jsonify({"error": "Reading values must be finite numbers."}), 400
+
+    status = (
+        "Critical"
+        if temperature < 26 or temperature > 32 or ph < 7.5 or ph > 8.5
+        else "Normal"
+    )
+    try:
+        db.session.execute(
+            insert(sensor_readings).values(
+                ph_level=ph,
+                temperature=temperature,
+                date=recorded_at.isoformat(),
+                status=status,
+            )
+        )
         db.session.commit()
-        return jsonify(reading.to_dict()), 201
-    except Exception as exc:
+        return jsonify(
+            {
+                "temperature": temperature,
+                "ph": ph,
+                "recorded_at": recorded_at.isoformat(),
+                "status": status,
+            }
+        ), 201
+    except SQLAlchemyError:
         db.session.rollback()
-        return jsonify({"error": str(exc)}), 500
+        app.logger.exception("Unable to save sensor reading.")
+        return jsonify({"error": "Unable to save sensor reading."}), 503
 
 
 @app.route("/api/readings/latest")
 @role_required("Client")
 def latest_reading():
-    reading = PondReading.query.order_by(PondReading.recorded_at.desc()).first()
+    try:
+        reading = db.session.execute(
+            select(sensor_readings)
+            .order_by(sensor_readings.c.date.desc())
+            .limit(1)
+        ).mappings().first()
+    except SQLAlchemyError:
+        db.session.rollback()
+        app.logger.exception("Unable to load the latest sensor reading.")
+        return jsonify({"error": "Unable to load sensor readings."}), 503
     if not reading:
         return jsonify(None)
-    return jsonify(reading.to_dict())
+    return jsonify(serialize_sensor_reading(reading))
 
 
 @app.route("/api/readings/history")
 @role_required("Client")
 def reading_history():
-    readings = PondReading.query.order_by(PondReading.recorded_at.desc()).limit(20).all()
-    return jsonify([reading.to_dict() for reading in reversed(readings)])
+    try:
+        readings = db.session.execute(
+            select(sensor_readings)
+            .order_by(sensor_readings.c.date.desc())
+            .limit(20)
+        ).mappings().all()
+    except SQLAlchemyError:
+        db.session.rollback()
+        app.logger.exception("Unable to load sensor reading history.")
+        return jsonify({"error": "Unable to load sensor readings."}), 503
+    return jsonify([serialize_sensor_reading(reading) for reading in reversed(readings)])
+
+
+@app.route("/historical/export", methods=["POST"])
+@role_required("Client")
+def export_historical_data():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("readings"), list):
+        return jsonify({"error": "A list of historical readings is required."}), 400
+    if len(payload["readings"]) > 10000:
+        return jsonify({"error": "Too many readings to export at once."}), 400
+
+    rows = [
+        ("Date", "Temperature (°C)", "pH", "Status"),
+    ]
+    for reading in payload["readings"]:
+        if not isinstance(reading, dict):
+            return jsonify({"error": "A historical reading is invalid."}), 400
+        try:
+            recorded_at = datetime.fromisoformat(reading["recorded_at"])
+            temperature = float(reading["temperature"])
+            ph = float(reading["ph"])
+        except (KeyError, TypeError, ValueError):
+            return jsonify({"error": "A historical reading has invalid values."}), 400
+        if not math.isfinite(temperature) or not math.isfinite(ph):
+            return jsonify({"error": "Readings must contain finite numeric values."}), 400
+        status = (
+            "Critical"
+            if temperature < 26
+            or temperature > 32
+            or ph < 7.5
+            or ph > 8.5
+            else "Normal"
+        )
+        rows.append(
+            (
+                recorded_at.strftime("%Y-%m-%d %H:%M:%S"),
+                format(temperature, ".15g"),
+                format(ph, ".15g"),
+                status,
+            )
+        )
+
+    def text_cell(reference, value):
+        return (
+            f'<c r="{reference}" t="inlineStr"><is><t xml:space="preserve">'
+            f"{escape(str(value))}</t></is></c>"
+        )
+
+    worksheet_rows = []
+    for row_number, row in enumerate(rows, start=1):
+        cells = [
+            text_cell(f"A{row_number}", row[0]),
+            text_cell(f"B{row_number}", row[1]) if row_number == 1 else f'<c r="B{row_number}"><v>{row[1]}</v></c>',
+            text_cell(f"C{row_number}", row[2]) if row_number == 1 else f'<c r="C{row_number}"><v>{row[2]}</v></c>',
+            text_cell(f"D{row_number}", row[3]),
+        ]
+        worksheet_rows.append(f'<row r="{row_number}">{"".join(cells)}</row>')
+
+    worksheet = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        f'<sheetData>{"".join(worksheet_rows)}</sheetData></worksheet>'
+    )
+    workbook = io.BytesIO()
+    with zipfile.ZipFile(workbook, "w", zipfile.ZIP_DEFLATED) as excel_file:
+        excel_file.writestr(
+            "[Content_Types].xml",
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            '<Default Extension="xml" ContentType="application/xml"/>'
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+            "</Types>",
+        )
+        excel_file.writestr(
+            "_rels/.rels",
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+            "</Relationships>",
+        )
+        excel_file.writestr(
+            "xl/workbook.xml",
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+            'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            '<sheets><sheet name="Historical Data" sheetId="1" r:id="rId1"/></sheets></workbook>',
+        )
+        excel_file.writestr(
+            "xl/_rels/workbook.xml.rels",
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+            "</Relationships>",
+        )
+        excel_file.writestr("xl/worksheets/sheet1.xml", worksheet)
+
+    workbook.seek(0)
+    return send_file(
+        workbook,
+        as_attachment=True,
+        download_name="shrimpguard-historical-data.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 @app.route("/")
+def landing():
+    user_id = session.get("user_id")
+    if user_id is not None:
+        try:
+            user = db.session.get(User, user_id)
+        except SQLAlchemyError:
+            db.session.rollback()
+            return "Authentication service is temporarily unavailable. Please retry.", 503
+
+        if user is None:
+            session.clear()
+        else:
+            role = user.role.strip().casefold()
+            if role == "admin":
+                return redirect(url_for("admin_home"))
+            if role == "client":
+                return redirect(url_for("dashboard"))
+            session.clear()
+
+    return render_template("landing.html")
+
+
+@app.route("/dashboard")
 @role_required("Client")
 def dashboard():
     try:
@@ -447,7 +611,12 @@ def login():
             error = "Enter your username and password."
         else:
             try:
-                user = User.query.filter_by(user_name=user_name).first()
+                user = User.query.filter(
+                    db.or_(
+                        User.user_name == user_name,
+                        User.email == user_name.lower(),
+                    )
+                ).first()
             except SQLAlchemyError:
                 db.session.rollback()
                 user = None
@@ -484,6 +653,68 @@ def login():
                             return redirect(url_for(destination))
 
     return render_template("login.html", error=error)
+
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    error = None
+
+    if request.method == "GET":
+        session["signup_csrf_token"] = secrets.token_urlsafe(32)
+    else:
+        expected_token = session.get("signup_csrf_token", "")
+        submitted_token = request.form.get("csrf_token", "")
+        user_name = request.form.get("user_name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not expected_token or not hmac.compare_digest(expected_token, submitted_token):
+            error = "Your sign-up request expired. Please try again."
+        elif not user_name or len(user_name) > 80:
+            error = "Enter a username between 1 and 80 characters."
+        elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email) or len(email) > 255:
+            error = "Enter a valid email address."
+        elif len(password) < 8:
+            error = "Use a password with at least 8 characters."
+        elif password != confirm_password:
+            error = "The passwords do not match."
+        else:
+            try:
+                existing_user = User.query.filter(
+                    (User.email == email) | (User.user_name == user_name)
+                ).first()
+            except SQLAlchemyError:
+                db.session.rollback()
+                error = "Sign-up is temporarily unavailable. Please try again."
+            else:
+                if existing_user is not None:
+                    error = "An account with that username or email already exists."
+                else:
+                    user = User(
+                        user_name=user_name,
+                        email=email,
+                        role="Client",
+                        status="Active",
+                    )
+                    user.set_password(password)
+                    db.session.add(user)
+                    try:
+                        db.session.commit()
+                    except IntegrityError:
+                        db.session.rollback()
+                        error = "An account with that username or email already exists."
+                    except SQLAlchemyError:
+                        db.session.rollback()
+                        error = "Sign-up is temporarily unavailable. Please try again."
+                    else:
+                        session.pop("signup_csrf_token", None)
+                        flash("Your account was created. Please sign in.", "success")
+                        return redirect(url_for("login"))
+
+        session["signup_csrf_token"] = secrets.token_urlsafe(32)
+
+    return render_template("signup.html", error=error)
 
 
 @app.route("/logout", methods=["POST"])

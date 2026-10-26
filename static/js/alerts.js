@@ -33,26 +33,6 @@ function getAlertData(reading) {
         });
     }
 
-    if (reading.salinity < 15 || reading.salinity > 30) {
-        const severity = reading.salinity < 12 || reading.salinity > 33 ? "Critical" : "Warning";
-        alerts.push({
-            severity,
-            title: `${severity} Salinity Alert`,
-            message: `Salinity is currently ${reading.salinity} ppt, outside the recommended range of 15–30 ppt.`,
-            notification: `SMS: Salinity is ${reading.salinity} ppt. Verify water exchange and adjust salinity levels.`
-        });
-    }
-
-    if (reading.turbidity > 30) {
-        const severity = reading.turbidity > 40 ? "Critical" : "Warning";
-        alerts.push({
-            severity,
-            title: `${severity} Turbidity Alert`,
-            message: `Turbidity is currently ${reading.turbidity} NTU, above the recommended limit of 30 NTU.`,
-            notification: `SMS: Turbidity is ${reading.turbidity} NTU. Increase filtration and inspect for sediment or waste buildup.`
-        });
-    }
-
     return alerts;
 }
 
@@ -83,13 +63,13 @@ function updateSummaryCards(history, latestReading) {
     if (activeAlerts.length === 0) {
         activeAlertsContainer.innerHTML = `
             <div class="status-box">
-                ✓ No active alerts right now. All monitored parameters are within the recommended range.
+                <svg class="ui-icon"><use href="#icon-check-circle"></use></svg> No active alerts right now. All monitored parameters are within the recommended range.
             </div>
         `;
     } else {
         activeAlertsContainer.innerHTML = activeAlerts.map((item) => `
             <div class="alert">
-                ${item.severity === "Critical" ? "⚠" : "📣"} ${item.title}
+                <svg class="ui-icon"><use href="${item.severity === "Critical" ? "#icon-alert" : "#icon-bell"}"></use></svg> ${item.title}
                 <br>
                 ${item.message}
                 <br><br>
@@ -110,7 +90,7 @@ function updateSummaryCards(history, latestReading) {
 
         <div class="notification-status-row">
             <div class="notification-status-main">
-                <div class="notification-status-icon success">✓</div>
+                <div class="notification-status-icon success"><svg class="ui-icon"><use href="#icon-check"></use></svg></div>
                 <div class="notification-status-copy">
                     <div class="notification-status-value">0</div>
                     <div class="notification-status-label">Sent</div>
@@ -121,7 +101,7 @@ function updateSummaryCards(history, latestReading) {
 
         <div class="notification-status-row">
             <div class="notification-status-main">
-                <div class="notification-status-icon success">✓</div>
+                <div class="notification-status-icon success"><svg class="ui-icon"><use href="#icon-check"></use></svg></div>
                 <div class="notification-status-copy">
                     <div class="notification-status-value">0</div>
                     <div class="notification-status-label">Delivered</div>
@@ -132,7 +112,7 @@ function updateSummaryCards(history, latestReading) {
 
         <div class="notification-status-row">
             <div class="notification-status-main">
-                <div class="notification-status-icon danger">✕</div>
+                <div class="notification-status-icon danger"><svg class="ui-icon"><use href="#icon-x"></use></svg></div>
                 <div class="notification-status-copy">
                     <div class="notification-status-value">0</div>
                     <div class="notification-status-label">Failed</div>

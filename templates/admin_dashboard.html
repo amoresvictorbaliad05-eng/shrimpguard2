@@ -9,12 +9,13 @@
 </head>
 
 <body class="admin-page">
+{% include "_icon_sprite.html" %}
 <div class="sidebar">
-    <div class="logo">🦐 <span>ShrimpGuard</span></div>
+    <div class="logo"><svg class="ui-icon brand-icon"><use href="#icon-shrimp"></use></svg> <span>ShrimpGuard</span></div>
     <p class="subtitle">Administration</p>
     <nav>
-        <a href="/admin/dashboard" class="active">▦ Admin Dashboard</a>
-        <a href="/admin">♙ User Management</a>
+        <a href="/admin/dashboard" class="active"><svg class="ui-icon"><use href="#icon-dashboard"></use></svg> Admin Dashboard</a>
+        <a href="/admin"><svg class="ui-icon"><use href="#icon-users"></use></svg> User Management</a>
     </nav>
     {% include "_logout_form.html" %}
 </div>
@@ -32,7 +33,7 @@
         <article class="admin-metric">
             <div class="admin-metric-top">
                 <span class="admin-metric-label">Total Users</span>
-                <span class="admin-metric-icon" aria-hidden="true">♙</span>
+                <span class="admin-metric-icon" aria-hidden="true"><svg class="ui-icon"><use href="#icon-users"></use></svg></span>
             </div>
             <strong class="admin-metric-value">{{ total_users }}</strong>
             <p class="admin-metric-note">Registered accounts</p>
@@ -41,7 +42,7 @@
         <article class="admin-metric">
             <div class="admin-metric-top">
                 <span class="admin-metric-label">Active Users</span>
-                <span class="admin-metric-icon" aria-hidden="true">●</span>
+                <span class="admin-metric-icon" aria-hidden="true"><svg class="ui-icon"><use href="#icon-check-circle"></use></svg></span>
             </div>
             <strong class="admin-metric-value">{{ active_users }}</strong>
             <p class="admin-metric-note">Currently active accounts</p>
@@ -50,7 +51,7 @@
         <article class="admin-metric">
             <div class="admin-metric-top">
                 <span class="admin-metric-label">Inactive Users</span>
-                <span class="admin-metric-icon" aria-hidden="true">◷</span>
+                <span class="admin-metric-icon" aria-hidden="true"><svg class="ui-icon"><use href="#icon-clock"></use></svg></span>
             </div>
             <strong class="admin-metric-value">{{ inactive_users }}</strong>
             <p class="admin-metric-note">Inactive accounts</p>
@@ -59,7 +60,7 @@
         <article class="admin-metric">
             <div class="admin-metric-top">
                 <span class="admin-metric-label">System Status</span>
-                <span class="admin-metric-icon" aria-hidden="true">⌁</span>
+                <span class="admin-metric-icon" aria-hidden="true"><svg class="ui-icon"><use href="#icon-activity"></use></svg></span>
             </div>
             <strong class="admin-metric-value admin-system-value{% if not system_online %} offline{% endif %}">
                 {{ "Operational" if system_online else "Unavailable" }}

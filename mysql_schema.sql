@@ -28,15 +28,11 @@ CREATE TABLE IF NOT EXISTS shrimpguard_users.roles (
     UNIQUE KEY uq_roles_role_name (role_name)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS shrimpguard_sensors.pond_readings (
-    id INT NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS shrimpguard_users.sensors (
+    ph_level FLOAT NOT NULL,
     temperature FLOAT NOT NULL,
-    ph FLOAT NOT NULL,
-    salinity FLOAT NOT NULL,
-    turbidity FLOAT NOT NULL,
-    recorded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    KEY ix_pond_readings_recorded_at (recorded_at)
+    `date` VARCHAR(45) NOT NULL,
+    status VARCHAR(45) NOT NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS shrimpguard_sensors.alert_logs (

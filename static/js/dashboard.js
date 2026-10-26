@@ -1,38 +1,14 @@
 function displayResults(data) {
 
-        // TEMPERATURE
-
         document.getElementById("temperature").textContent =
             data.temperature + " °C";
-
-
-        // PH
 
         document.getElementById("ph").textContent =
             data.ph;
 
-
-        // SALINITY
-
-        document.getElementById("salinity").textContent =
-            data.salinity + " ppt";
-
-
-        // TURBIDITY
-
-        document.getElementById("turbidity").textContent =
-            data.turbidity + " NTU";
-
-
-        // STATUS
-
         updateStatus(data);
 
-        // WQI
-
         calculateWQI(data);
-
-        // ALERTS
 
         createAlerts(data);
 
@@ -84,12 +60,12 @@ function updateDeviceTime() {
 function updateStatus(data) {
 
     let status =
-        "✓ Overall water quality is GOOD.";
+        "Overall water quality is GOOD.";
 
-    if (data.temperature < 26 || data.temperature > 32 || data.ph < 7.5 || data.ph > 8.5 || data.salinity < 15 || data.salinity > 30 || data.turbidity > 30) {
+    if (data.temperature < 26 || data.temperature > 32 || data.ph < 7.5 || data.ph > 8.5) {
 
         status =
-            "⚠ Overall water quality needs attention.";
+            "Overall water quality needs attention.";
 
     }
 
@@ -103,34 +79,22 @@ function calculateWQI(data) {
 
     let wqi = 100;
 
-
     if (data.temperature < 26 || data.temperature > 32) {
-        wqi -= 10;
-    }
-
-    if (data.ph < 7.5 || data.ph > 8.5) {
-        wqi -= 10;
-    }
-
-    if (data.salinity < 15 || data.salinity > 30) {
-        wqi -= 10;
-    }
-
-    if (data.turbidity > 30) {
         wqi -= 15;
     }
 
-    document.getElementById("wqi-value").textContent =
-        wqi;
+    if (data.ph < 7.5 || data.ph > 8.5) {
+        wqi -= 20;
+    }
 
+    document.getElementById("wqi-value").textContent =
+        Math.max(0, wqi);
 
     let status = "GOOD";
-
 
     if (wqi < 70) {
         status = "WARNING";
     }
-
 
     document.getElementById("wqi-status").textContent =
         status;
@@ -148,7 +112,6 @@ function createAlerts(data) {
 
     const alertItems = [];
 
-
     if (data.temperature < 26 || data.temperature > 32) {
 
         const severity = data.temperature < 24 || data.temperature > 34 ? "Critical" : "Mild";
@@ -161,7 +124,6 @@ function createAlerts(data) {
         });
 
     }
-
 
     if (data.ph < 7.5 || data.ph > 8.5) {
 
@@ -177,41 +139,13 @@ function createAlerts(data) {
     }
 
 
-    if (data.salinity < 15 || data.salinity > 30) {
-
-        const severity = data.salinity < 12 || data.salinity > 33 ? "Critical" : "Mild";
-
-        alertItems.push({
-            severity,
-            title: `${severity} Salinity Alert`,
-            message: `Salinity is currently ${data.salinity} ppt, which is outside the recommended range of 15–30 ppt.`,
-            notification: `SMS: Salinity is ${data.salinity} ppt. Verify water exchange and salinity adjustments before the next cycle.`
-        });
-
-    }
-
-
-    if (data.turbidity > 30) {
-
-        const severity = data.turbidity > 40 ? "Critical" : "Mild";
-
-        alertItems.push({
-            severity,
-            title: `${severity} Turbidity Alert`,
-            message: `Turbidity is currently ${data.turbidity} NTU, which is above the recommended limit of 30 NTU.`,
-            notification: `SMS: Turbidity is ${data.turbidity} NTU. Increase filtration and inspect for excess sediment or feed buildup.`
-        });
-
-    }
-
-
     if (alertItems.length === 0) {
 
         alerts.innerHTML = `
 
             <div class="status-box">
 
-                ✓ No abnormal readings detected. Alerts and notifications are normal.
+                <svg class="ui-icon"><use href="#icon-check-circle"></use></svg> No abnormal readings detected. Alerts and notifications are normal.
 
             </div>
 
@@ -228,7 +162,7 @@ function createAlerts(data) {
 
             <div class="alert">
 
-                ${item.severity === "Critical" ? "⚠" : "📣"} ${item.title}
+                <svg class="ui-icon"><use href="${item.severity === "Critical" ? "#icon-alert" : "#icon-bell"}"></use></svg> ${item.title}
 
                 <br>
 
@@ -256,9 +190,7 @@ document.getElementById("quality-form").addEventListener("submit", async functio
     const formData = new FormData(event.currentTarget);
     const data = {
         temperature: Number(formData.get("temperature")),
-        ph: Number(formData.get("ph")),
-        salinity: Number(formData.get("salinity")),
-        turbidity: Number(formData.get("turbidity"))
+        ph: Number(formData.get("ph"))
     };
 
     const savedReading = await saveReading(data);

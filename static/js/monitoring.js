@@ -1,6 +1,6 @@
 const readingKey = "shrimpGuardLatest";
 const historyKey = "shrimpGuardHistory";
-const chartColors = ["#2f6fbd", "#2f8a57", "#d97706", "#9b4dca"];
+const chartColors = ["#2f6fbd", "#2f8a57"];
 
 function updateDeviceTime() {
     document.getElementById("time").textContent =
@@ -9,8 +9,7 @@ function updateDeviceTime() {
 
 function getQualityStatus(reading) {
     const needsAttention = reading.temperature < 26 || reading.temperature > 32 ||
-        reading.ph < 7.5 || reading.ph > 8.5 || reading.salinity < 15 ||
-        reading.salinity > 30 || reading.turbidity > 30;
+        reading.ph < 7.5 || reading.ph > 8.5;
 
     return needsAttention ? "Needs attention" : "Water quality is GOOD";
 }
@@ -18,8 +17,6 @@ function getQualityStatus(reading) {
 function updateSummary(reading) {
     document.getElementById("monitor-temperature").textContent = reading.temperature;
     document.getElementById("monitor-ph").textContent = reading.ph;
-    document.getElementById("monitor-salinity").textContent = reading.salinity;
-    document.getElementById("monitor-turbidity").textContent = reading.turbidity;
     document.getElementById("monitoring-status").textContent = getQualityStatus(reading);
     document.getElementById("monitoring-updated").textContent =
         "Last submitted " + new Date(reading.recorded_at).toLocaleString();
@@ -31,7 +28,7 @@ function drawTrendChart(history) {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
     const scale = window.devicePixelRatio || 1;
-    const series = ["temperature", "ph", "salinity", "turbidity"];
+    const series = ["temperature", "ph"];
     const values = series.map((key) => history.map((reading) => reading[key]));
     const allValues = values.flat();
     const minimum = Math.min(...allValues);
@@ -83,29 +80,19 @@ function updateRecommendations(reading) {
     }
 
     if (reading.temperature < 26) {
-        recommendations.push("🔵 Temperature is below the ideal range. Consider adjusting pond heating or reducing cooling to stabilize conditions.");
+        recommendations.push('<svg class="ui-icon"><use href="#icon-thermometer"></use></svg> Temperature is below the ideal range. Consider adjusting pond heating or reducing cooling to stabilize conditions.');
     } else if (reading.temperature > 32) {
-        recommendations.push("🔵 Temperature is above the ideal range. Increase aeration and consider cooling measures to reduce stress on shrimp.");
+        recommendations.push('<svg class="ui-icon"><use href="#icon-thermometer"></use></svg> Temperature is above the ideal range. Increase aeration and consider cooling measures to reduce stress on shrimp.');
     }
 
     if (reading.ph < 7.5) {
-        recommendations.push("💧 pH is too low. Add buffering agents to raise pH toward the recommended range.");
+        recommendations.push('<svg class="ui-icon"><use href="#icon-droplet"></use></svg> pH is too low. Add buffering agents to raise pH toward the recommended range.');
     } else if (reading.ph > 8.5) {
-        recommendations.push("💧 pH is too high. Check the water source and apply corrective treatment to bring pH back down.");
-    }
-
-    if (reading.salinity < 15) {
-        recommendations.push("🌊 Salinity is below the target range. Recheck the salt balance and add seawater or saline solution as needed.");
-    } else if (reading.salinity > 30) {
-        recommendations.push("🌊 Salinity is above the target range. Dilute the pond water carefully and verify the salinity control system.");
-    }
-
-    if (reading.turbidity > 30) {
-        recommendations.push("🔍 Turbidity is elevated. Increase filtration and inspect the pond for excess feed, sediment, or poor circulation.");
+        recommendations.push('<svg class="ui-icon"><use href="#icon-droplet"></use></svg> pH is too high. Check the water source and apply corrective treatment to bring pH back down.');
     }
 
     if (recommendations.length === 0) {
-        recommendationsList.innerHTML = "<li>✅ No abnormal readings detected. Continue regular monitoring and keep the current conditions stable.</li>";
+        recommendationsList.innerHTML = '<li><svg class="ui-icon"><use href="#icon-check-circle"></use></svg> No abnormal readings detected. Continue regular monitoring and keep the current conditions stable.</li>';
         return;
     }
 

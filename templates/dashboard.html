@@ -12,11 +12,12 @@
 </head>
 
 <body>
+{% include "_icon_sprite.html" %}
 
 <div class="sidebar">
 
     <div class="logo">
-        🦐 <span>ShrimpGuard</span>
+        <svg class="ui-icon brand-icon"><use href="#icon-shrimp"></use></svg> <span>ShrimpGuard</span>
     </div>
 
     <p class="subtitle">
@@ -26,27 +27,27 @@
     <nav>
 
         <a href="/" class="active">
-            🏠 Dashboard
+            <svg class="ui-icon"><use href="#icon-dashboard"></use></svg> Dashboard
         </a>
 
         <a href="/monitoring">
-            📡 Real-time Monitoring
+            <svg class="ui-icon"><use href="#icon-monitor"></use></svg> Real-time Monitoring
         </a>
 
         <a href="/historical">
-            📊 Historical Data
+            <svg class="ui-icon"><use href="#icon-history"></use></svg> Historical Data
         </a>
 
         <a href="/analytics">
-            📈 Analytics & Reports
+            <svg class="ui-icon"><use href="#icon-chart"></use></svg> Analytics & Reports
         </a>
 
         <a href="/alerts">
-            🚨 Alerts and Notifications
+            <svg class="ui-icon"><use href="#icon-alert"></use></svg> Alerts and Notifications
         </a>
 
         <a href="/settings">
-            ⚙️ Settings
+            <svg class="ui-icon"><use href="#icon-settings"></use></svg> Settings
         </a>
 
     </nav>
@@ -61,7 +62,7 @@
 
         <div>
 
-            <h1>Good morning, Admin! 👋</h1>
+            <h1>Good morning, Admin!</h1>
 
             <p>
                 Here's what's happening in your shrimp farm today.
@@ -71,7 +72,7 @@
 
         <div class="header-info">
 
-            <button id="notification-button" class="notification-button" type="button" aria-label="View notifications">🔔</button>
+            <button id="notification-button" class="notification-button" type="button" aria-label="View notifications"><svg class="ui-icon"><use href="#icon-bell"></use></svg></button>
 
             <div class="time">
                 <span id="time"></span>
@@ -103,16 +104,6 @@
                 <input id="ph-input" name="ph" type="number" min="0" max="14" step="0.01" required>
             </label>
 
-            <label>
-                Salinity (ppt)
-                <input id="salinity-input" name="salinity" type="number" min="0" step="0.1" required>
-            </label>
-
-            <label>
-                Turbidity (NTU)
-                <input id="turbidity-input" name="turbidity" type="number" min="0" step="0.1" required>
-            </label>
-
             <button type="submit">Display Results</button>
 
         </form>
@@ -126,7 +117,7 @@
 
         <div class="card">
 
-            <div class="icon">🌡️</div>
+            <div class="icon"><svg class="ui-icon"><use href="#icon-thermometer"></use></svg></div>
 
             <div>
 
@@ -147,7 +138,7 @@
 
         <div class="card">
 
-            <div class="icon">💧</div>
+            <div class="icon"><svg class="ui-icon"><use href="#icon-droplet"></use></svg></div>
 
             <div>
 
@@ -158,48 +149,6 @@
                 </h2>
 
                 <p id="ph-status">
-                    Loading...
-                </p>
-
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="icon">🌊</div>
-
-            <div>
-
-                <h3>Salinity</h3>
-
-                <h2 id="salinity">
-                    -- ppt
-                </h2>
-
-                <p id="salinity-status">
-                    Loading...
-                </p>
-
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="icon">🔵</div>
-
-            <div>
-
-                <h3>Turbidity</h3>
-
-                <h2 id="turbidity">
-                    -- NTU
-                </h2>
-
-                <p id="turbidity-status">
                     Loading...
                 </p>
 

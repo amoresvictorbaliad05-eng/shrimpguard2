@@ -30,28 +30,6 @@ function getAlertData(reading) {
         });
     }
 
-    if (reading.salinity < 15 || reading.salinity > 30) {
-        const severity = reading.salinity < 12 || reading.salinity > 33 ? "Critical" : "Mild";
-        alerts.push({
-            severity,
-            title: `${severity} Salinity Alert`,
-            message: `Salinity is currently ${reading.salinity} ppt, outside the recommended range of 15–30 ppt.`,
-            notification: `SMS: Salinity is ${reading.salinity} ppt. Verify water exchange and adjust salinity levels.`,
-            recorded_at: reading.recorded_at
-        });
-    }
-
-    if (reading.turbidity > 30) {
-        const severity = reading.turbidity > 40 ? "Critical" : "Mild";
-        alerts.push({
-            severity,
-            title: `${severity} Turbidity Alert`,
-            message: `Turbidity is currently ${reading.turbidity} NTU, above the recommended limit of 30 NTU.`,
-            notification: `SMS: Turbidity is ${reading.turbidity} NTU. Increase filtration and inspect for sediment or waste buildup.`,
-            recorded_at: reading.recorded_at
-        });
-    }
-
     return alerts;
 }
 
@@ -86,7 +64,7 @@ function renderNotifications() {
     if (notifications.length === 0) {
         notificationContainer.innerHTML = `
             <div class="notification-empty">
-                ✓ No alerts or notifications have been generated yet. Submit a reading from the dashboard to create the first alert feed.
+                <svg class="ui-icon"><use href="#icon-check-circle"></use></svg> No alerts or notifications have been generated yet. Submit a reading from the dashboard to create the first alert feed.
             </div>
         `;
         return;
@@ -118,18 +96,39 @@ function setupNotificationModal() {
         return;
     }
 
+    button.setAttribute("aria-controls", backdrop.id);
+    button.setAttribute("aria-expanded", "false");
+
+    const closeNotifications = () => {
+        backdrop.classList.remove("visible");
+        button.setAttribute("aria-expanded", "false");
+    };
+
     button.addEventListener("click", () => {
+        if (backdrop.classList.contains("visible")) {
+            closeNotifications();
+            return;
+        }
+
         renderNotifications();
         backdrop.classList.add("visible");
+        button.setAttribute("aria-expanded", "true");
     });
 
     closeButton.addEventListener("click", () => {
-        backdrop.classList.remove("visible");
+        closeNotifications();
     });
 
-    backdrop.addEventListener("click", (event) => {
-        if (event.target === backdrop) {
-            backdrop.classList.remove("visible");
+    document.addEventListener("click", (event) => {
+        if (!backdrop.contains(event.target) && !button.contains(event.target)) {
+            closeNotifications();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && backdrop.classList.contains("visible")) {
+            closeNotifications();
+            button.focus();
         }
     });
 }
@@ -143,10 +142,10 @@ function createNotificationModal() {
     modal.className = "notification-modal-backdrop";
     modal.id = "notification-modal-backdrop";
     modal.innerHTML = `
-        <div class="notification-modal" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title">
+        <div class="notification-modal" role="dialog" aria-labelledby="notification-modal-title">
             <div class="notification-header">
-                <h2 id="notification-modal-title">Latest Notifications</h2>
-                <button id="notification-modal-close" class="notification-close" type="button" aria-label="Close notifications">×</button>
+                <h2 id="notification-modal-title">Notifications</h2>
+                <button id="notification-modal-close" class="notification-close" type="button" aria-label="Close notifications"><svg class="ui-icon"><use href="#icon-x"></use></svg></button>
             </div>
             <div id="notification-content" class="notification-content"></div>
         </div>
