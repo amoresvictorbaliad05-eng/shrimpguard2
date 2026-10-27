@@ -94,39 +94,58 @@ td { color: #344054; font-size: 14px; }
 .table-status { border-radius: 20px; font-size: 12px; font-weight: bold; padding: 5px 9px; }
 .table-status.good { background: #edf8f1; color: #286542; }
 .table-status.warning { background: #fff4e5; color: #9a5810; }
+.table-status.demo { background: #edf2ff; color: #344b83; }
+.demo-data-note {
+    background: #edf2ff;
+    border-radius: 7px;
+    color: #344b83;
+    font-size: 13px;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+}
 .table-empty { color: #667085; text-align: center; }
 
-.filter-indicators {
+.readings-pagination {
     align-items: center;
-    border-top: 1px solid #edf0f4;
     display: flex;
-    gap: 20px;
-    justify-content: space-between;
-    margin-top: 20px;
-    padding-top: 18px;
-}
-
-.filter-indicators p { margin: 0; }
-.filter-indicators .eyebrow { margin-bottom: 4px; }
-.reading-indicators { display: flex; flex-wrap: wrap; gap: 10px; }
-
-.reading-indicator {
-    align-items: center;
-    border-radius: 20px;
-    display: inline-flex;
-    font-size: 12px;
     gap: 6px;
-    padding: 7px 10px;
+    justify-content: flex-end;
+    margin-top: 16px;
 }
 
-.good-reading { background: #edf8f1; color: #286542; }
-.bad-reading { background: #fff0f0; color: #a83232; }
-.indicator-dot { border-radius: 50%; display: inline-block; height: 8px; width: 8px; }
-.good-reading .indicator-dot, .good-dot { background: #2f8a57; }
-.bad-reading .indicator-dot, .bad-dot { background: #d64545; }
+.readings-page-button {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    color: #475467;
+    cursor: pointer;
+    font: inherit;
+    min-height: 34px;
+    min-width: 34px;
+    padding: 0 9px;
+}
 
-.indicator-legend { display: flex; gap: 14px; white-space: nowrap; }
-.indicator-legend span { align-items: center; color: #667085; display: inline-flex; font-size: 12px; gap: 5px; }
+.readings-page-button:hover:not(:disabled) {
+    background: #edf8f1;
+    border-color: #b7dec4;
+}
+
+.readings-page-button[aria-current="page"] {
+    background: #edf8f1;
+    border-color: #b7dec4;
+    color: #184e42;
+    font-weight: 700;
+}
+
+.readings-page-button:disabled {
+    color: #98a2b3;
+    cursor: not-allowed;
+}
+
+.readings-page-ellipsis {
+    color: #667085;
+    padding: 0 3px;
+}
 
 /* REAL-TIME MONITORING */
 
@@ -1517,11 +1536,6 @@ header p {
         grid-column: auto;
     }
 
-    .filter-indicators {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
     .historical-layout {
         grid-template-columns: 1fr;
     }
@@ -1645,6 +1659,27 @@ header p {
 .admin-user-dialog-heading h2 {
     font-size: 18px;
     margin: 0;
+}
+
+.profile-confirmation-content {
+    padding: 18px 20px 20px;
+}
+
+.profile-confirmation-content p {
+    color: #405468;
+    margin: 0 0 20px;
+}
+
+.profile-confirmation-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.settings-page .profile-confirmation-actions .admin-user-cancel {
+    background: #fff;
+    border-color: #d6e0e8;
+    color: #405468;
 }
 
 .admin-dialog-close {

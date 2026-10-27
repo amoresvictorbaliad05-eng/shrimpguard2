@@ -1,5 +1,3 @@
-const readingKey = "shrimpGuardLatest";
-const historyKey = "shrimpGuardHistory";
 const chartColors = ["#2f6fbd", "#2f8a57"];
 
 function updateDeviceTime() {
@@ -19,7 +17,8 @@ function updateSummary(reading) {
     document.getElementById("monitor-ph").textContent = reading.ph;
     document.getElementById("monitoring-status").textContent = getQualityStatus(reading);
     document.getElementById("monitoring-updated").textContent =
-        "Last submitted " + new Date(reading.recorded_at).toLocaleString();
+        "Last updated " + new Date(reading.recorded_at).toLocaleString();
+    document.getElementById("monitoring-demo-note").hidden = reading.status !== "Demo";
 }
 
 function drawTrendChart(history) {
@@ -113,11 +112,19 @@ async function loadMonitoringData() {
         if (latestResponse.ok && historyResponse.ok) {
             const latest = await latestResponse.json();
             const history = await historyResponse.json();
+            if (!Array.isArray(history)) {
+                throw new Error("Sensor history response has an invalid format.");
+            }
 
             if (!latest || history.length === 0) {
                 emptyMessage.hidden = false;
                 document.getElementById("trend-count").textContent = "No readings yet";
                 updateRecommendations(null);
+                document.getElementById("monitor-temperature").textContent = "--";
+                document.getElementById("monitor-ph").textContent = "--";
+                document.getElementById("monitoring-status").textContent = "Waiting for a reading";
+                document.getElementById("monitoring-updated").textContent = "No sensor readings are saved yet.";
+                document.getElementById("monitoring-demo-note").hidden = true;
                 return;
             }
 
@@ -128,25 +135,17 @@ async function loadMonitoringData() {
             drawTrendChart(history);
             return;
         }
+        throw new Error(`Sensor API returned ${latestResponse.status} / ${historyResponse.status}.`);
     } catch (error) {
-        console.warn("Falling back to localStorage for monitoring data:", error);
-    }
-
-    const latest = JSON.parse(localStorage.getItem(readingKey) || "null");
-    const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-
-    if (!latest || history.length === 0) {
+        console.error("Unable to load sensor data for monitoring:", error);
         emptyMessage.hidden = false;
-        document.getElementById("trend-count").textContent = "No readings yet";
+        emptyMessage.textContent = "Unable to load sensor data. Please refresh or retry.";
+        document.getElementById("trend-count").textContent = "Data unavailable";
+        document.getElementById("monitoring-status").textContent = "Sensor data unavailable";
+        document.getElementById("monitoring-updated").textContent = "Could not connect to the sensors database.";
+        document.getElementById("monitoring-demo-note").hidden = true;
         updateRecommendations(null);
-        return;
     }
-
-    emptyMessage.hidden = true;
-    updateSummary(latest);
-    updateRecommendations(latest);
-    document.getElementById("trend-count").textContent = `${history.length} reading${history.length === 1 ? "" : "s"}`;
-    drawTrendChart(history);
 }
 
 updateDeviceTime();
@@ -154,4 +153,4 @@ setInterval(updateDeviceTime, 1000);
 loadMonitoringData();
 window.addEventListener("storage", loadMonitoringData);
 window.addEventListener("resize", loadMonitoringData);
-setInterval(loadMonitoringData, 1000);
+setInterval(loadMonitoringData, 10000);

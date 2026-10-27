@@ -36,14 +36,17 @@
             <div class="time"><span id="time"></span></div>
         </div>
     </header>
+    <p id="analytics-demo-note" class="demo-data-note" hidden>
+        Demo readings are illustrative sample data, not live pond measurements.
+    </p>
 
     <section class="cards">
         <div class="card">
             <div class="icon"><svg class="ui-icon"><use href="#icon-chart"></use></svg></div>
             <div>
                 <h3>Average Water Quality</h3>
-                <h2>87 / 100</h2>
-                <p>Healthy range overall</p>
+                <h2 id="analytics-average-quality">--</h2>
+                <p id="analytics-quality-summary">Waiting for sensor readings</p>
             </div>
         </div>
 
@@ -51,8 +54,8 @@
             <div class="icon"><svg class="ui-icon"><use href="#icon-alert"></use></svg></div>
             <div>
                 <h3>Active Alerts</h3>
-                <h2>2</h2>
-                <p>1 mild, 1 critical</p>
+                <h2 id="analytics-active-alerts">--</h2>
+                <p id="analytics-alert-summary">Waiting for sensor readings</p>
             </div>
         </div>
 
@@ -60,8 +63,8 @@
             <div class="icon"><svg class="ui-icon"><use href="#icon-lightbulb"></use></svg></div>
             <div>
                 <h3>Recommended Action</h3>
-                <h2>Adjust pH</h2>
-                <p>Improve stability this cycle</p>
+                <h2 id="analytics-recommended-action">--</h2>
+                <p id="analytics-action-summary">Based on the latest sensor reading</p>
             </div>
         </div>
 
@@ -69,8 +72,8 @@
             <div class="icon"><svg class="ui-icon"><use href="#icon-clock"></use></svg></div>
             <div>
                 <h3>Monitoring Status</h3>
-                <h2>Live</h2>
-                <p>Updated every cycle</p>
+                <h2 id="analytics-monitoring-status">--</h2>
+                <p id="analytics-last-update">Waiting for sensor readings</p>
             </div>
         </div>
     </section>
@@ -103,36 +106,32 @@
         <div class="panel">
             <h2>Farm Health Summary</h2>
             <div class="status-box">
-                <h3>Overall pond condition is stable when both temperature and pH remain in range.</h3>
-                <p>Current monitoring focuses on the active sensor set so the latest readings can be checked against the current operational targets.</p>
+                <h3 id="analytics-health-heading">Waiting for sensor readings</h3>
+                <p id="analytics-health-detail">Sensor readings from the database will appear here.</p>
             </div>
         </div>
 
         <div class="panel">
             <h2>Key Findings</h2>
-            <ul class="recommendations">
-                <li>pH is the primary variable to monitor for stable pond conditions.</li>
-                <li>Temperature remains the other key factor affecting shrimp health and water quality.</li>
-                <li>Monitoring should remain focused on the active sensor set until new instrumentation is available.</li>
+            <ul id="analytics-key-findings" class="recommendations">
+                <li>Loading sensor data...</li>
             </ul>
         </div>
 
         <div class="panel">
             <h2>Recommended Operations</h2>
-            <ul class="recommendations">
-                <li>Keep temperature and pH within the ideal operating range.</li>
-                <li>Check pond conditions regularly and confirm the monitoring cycle is consistent.</li>
-                <li>Continue recording readings as the temporary sensor setup remains in place.</li>
+            <ul id="analytics-recommended-operations" class="recommendations">
+                <li>Loading sensor data...</li>
             </ul>
         </div>
 
         <div class="panel">
             <h2>Report Snapshot</h2>
             <ul class="recommendations">
-                <li>Water Quality Index: 87</li>
-                <li>Critical Alerts: 1</li>
-                <li>Mild Alerts: 1</li>
-                <li>Last Update: Today, 2:00 PM</li>
+                <li>Water Quality Index: <span id="analytics-report-quality">--</span></li>
+                <li>Critical Alerts: <span id="analytics-report-critical">--</span></li>
+                <li>Warnings: <span id="analytics-report-warnings">--</span></li>
+                <li>Last Update: <span id="analytics-report-updated">--</span></li>
             </ul>
         </div>
     </section>

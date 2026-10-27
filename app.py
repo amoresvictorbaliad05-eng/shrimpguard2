@@ -200,6 +200,7 @@ with app.app_context():
 
 
 @app.route("/api/readings", methods=["POST"])
+@role_required("Client")
 def create_reading():
     payload = request.get_json(silent=True) or {}
     required_fields = ["temperature", "ph"]
@@ -274,7 +275,6 @@ def reading_history():
         readings = db.session.execute(
             select(sensor_readings)
             .order_by(sensor_readings.c.date.desc())
-            .limit(20)
         ).mappings().all()
     except SQLAlchemyError:
         db.session.rollback()
@@ -283,29 +283,32 @@ def reading_history():
     return jsonify([serialize_sensor_reading(reading) for reading in reversed(readings)])
 
 
-@app.route("/historical/export", methods=["POST"])
+@app.route("/historical/export")
 @role_required("Client")
 def export_historical_data():
-    payload = request.get_json(silent=True)
-    if not isinstance(payload, dict) or not isinstance(payload.get("readings"), list):
-        return jsonify({"error": "A list of historical readings is required."}), 400
-    if len(payload["readings"]) > 10000:
-        return jsonify({"error": "Too many readings to export at once."}), 400
+    try:
+        readings = db.session.execute(
+            select(sensor_readings).order_by(sensor_readings.c.date.asc())
+        ).mappings().all()
+    except SQLAlchemyError:
+        db.session.rollback()
+        app.logger.exception("Unable to load sensor readings for export.")
+        return jsonify({"error": "Unable to load sensor readings for export."}), 503
 
     rows = [
         ("Date", "Temperature (°C)", "pH", "Status"),
     ]
-    for reading in payload["readings"]:
-        if not isinstance(reading, dict):
-            return jsonify({"error": "A historical reading is invalid."}), 400
+    for reading in readings:
         try:
-            recorded_at = datetime.fromisoformat(reading["recorded_at"])
+            recorded_at = datetime.fromisoformat(reading["date"])
             temperature = float(reading["temperature"])
-            ph = float(reading["ph"])
-        except (KeyError, TypeError, ValueError):
-            return jsonify({"error": "A historical reading has invalid values."}), 400
+            ph = float(reading["ph_level"])
+        except (TypeError, ValueError):
+            app.logger.exception("A stored sensor reading has invalid values.")
+            return jsonify({"error": "A stored sensor reading has invalid values."}), 500
         if not math.isfinite(temperature) or not math.isfinite(ph):
-            return jsonify({"error": "Readings must contain finite numeric values."}), 400
+            app.logger.error("A stored sensor reading contains non-finite values.")
+            return jsonify({"error": "A stored sensor reading contains invalid numeric values."}), 500
         status = (
             "Critical"
             if temperature < 26
@@ -314,6 +317,8 @@ def export_historical_data():
             or ph > 8.5
             else "Normal"
         )
+        if reading["status"].strip().casefold() == "demo":
+            status = f"Demo - {status}"
         rows.append(
             (
                 recorded_at.strftime("%Y-%m-%d %H:%M:%S"),

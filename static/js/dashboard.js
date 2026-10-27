@@ -1,17 +1,19 @@
 function displayResults(data) {
-
-        document.getElementById("temperature").textContent =
-            data.temperature + " °C";
-
-        document.getElementById("ph").textContent =
-            data.ph;
-
-        updateStatus(data);
-
-        calculateWQI(data);
-
-        createAlerts(data);
-
+    document.getElementById("temperature").textContent = `${data.temperature} °C`;
+    document.getElementById("ph").textContent = data.ph;
+    const needsAttention = data.temperature < 26 || data.temperature > 32 ||
+        data.ph < 7.5 || data.ph > 8.5;
+    document.getElementById("temperature-status").textContent =
+        data.temperature < 26 || data.temperature > 32 ? "Outside recommended range" : "Within recommended range";
+    document.getElementById("ph-status").textContent =
+        data.ph < 7.5 || data.ph > 8.5 ? "Outside recommended range" : "Within recommended range";
+    document.getElementById("last-updated").textContent = data.recorded_at
+        ? `Last updated ${new Date(data.recorded_at).toLocaleString()}`
+        : "";
+    document.getElementById("dashboard-demo-note").hidden = data.status !== "Demo";
+    updateStatus(data);
+    calculateWQI(data);
+    createAlerts(data);
 }
 
 
@@ -21,33 +23,20 @@ async function saveReading(data) {
         recorded_at: new Date().toISOString()
     };
 
-    try {
-        const response = await fetch("/api/readings", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(reading)
-        });
+    const response = await fetch("/api/readings", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(reading)
+    });
 
-        if (!response.ok) {
-            throw new Error("Unable to save reading to MySQL");
-        }
-
-        const savedReading = await response.json();
-        const history = JSON.parse(localStorage.getItem("shrimpGuardHistory") || "[]");
-        const updatedHistory = [...history, savedReading].slice(-20);
-
-        localStorage.setItem("shrimpGuardLatest", JSON.stringify(savedReading));
-        localStorage.setItem("shrimpGuardHistory", JSON.stringify(updatedHistory));
-        return savedReading;
-    } catch (error) {
-        const history = JSON.parse(localStorage.getItem("shrimpGuardHistory") || "[]");
-        history.push(reading);
-        localStorage.setItem("shrimpGuardLatest", JSON.stringify(reading));
-        localStorage.setItem("shrimpGuardHistory", JSON.stringify(history.slice(-20)));
-        return reading;
+    if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || "Unable to save reading to the database.");
     }
+
+    return response.json();
 }
 
 
@@ -193,6 +182,36 @@ document.getElementById("quality-form").addEventListener("submit", async functio
         ph: Number(formData.get("ph"))
     };
 
-    const savedReading = await saveReading(data);
-    displayResults(savedReading);
+    const submitButton = event.currentTarget.querySelector("button[type=submit]");
+    submitButton.disabled = true;
+    try {
+        const savedReading = await saveReading(data);
+        displayResults(savedReading);
+    } catch (error) {
+        console.error("Unable to save water quality reading:", error);
+        window.alert(`Unable to save reading: ${error.message}`);
+    } finally {
+        submitButton.disabled = false;
+    }
 });
+
+async function loadLatestReading() {
+    try {
+        const response = await fetch("/api/readings/latest");
+        if (!response.ok) {
+            throw new Error(`Sensor request failed with status ${response.status}.`);
+        }
+        const reading = await response.json();
+        if (reading) {
+            displayResults(reading);
+        } else {
+            document.getElementById("overall-status").textContent = "No sensor readings are saved yet.";
+        }
+    } catch (error) {
+        console.error("Unable to load the latest sensor reading:", error);
+        document.getElementById("overall-status").textContent = "Unable to load sensor data. Please refresh or retry.";
+    }
+}
+
+loadLatestReading();
+setInterval(loadLatestReading, 10000);

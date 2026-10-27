@@ -1,4 +1,6 @@
-const historyKey = "shrimpGuardHistory";
+let sensorHistory = [];
+let historyPage = 1;
+const readingsPerPage = 10;
 const parameterLabels = {
     temperature: "Temperature",
     ph: "pH Level"
@@ -20,25 +22,6 @@ function statusFor(reading) {
 function localDate(reading) {
     const date = new Date(reading.recorded_at);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function readHistory() {
-    return JSON.parse(localStorage.getItem(historyKey) || "[]");
-}
-
-function updateReadingIndicators(history) {
-    const indicators = document.getElementById("reading-indicators");
-    const selectedDate = document.getElementById("history-date").value;
-    const dateDescription = selectedDate ? new Date(`${selectedDate}T00:00:00`).toLocaleDateString() : "the selected interval";
-
-    indicators.innerHTML = history.map((reading) => {
-        const date = new Date(reading.recorded_at);
-        const isBad = statusFor(reading) === "Needs attention";
-        return `<span class="reading-indicator ${isBad ? "bad-reading" : "good-reading"}" title="${isBad ? "Bad reading" : "Good reading"} at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}"><i class="indicator-dot"></i><span>${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>`;
-    }).join("");
-    document.getElementById("indicator-message").textContent = history.length
-        ? `${history.length} reading${history.length === 1 ? "" : "s"} found for ${dateDescription}.`
-        : `No readings found for ${dateDescription}.`;
 }
 
 function filterHistory(history) {
@@ -121,23 +104,86 @@ function updateSummary(history, parameters) {
 
 function updateTable(history) {
     const body = document.getElementById("readings-body");
-    body.innerHTML = history.slice().reverse().map((reading) => {
+    const pagination = document.getElementById("readings-pagination");
+    const hasDemoData = history.some((reading) => reading.status === "Demo");
+    const sortedHistory = history.slice().reverse();
+    const pageCount = Math.ceil(sortedHistory.length / readingsPerPage);
+    historyPage = Math.min(historyPage, Math.max(pageCount, 1));
+    document.getElementById("demo-data-note").hidden = !hasDemoData;
+    body.innerHTML = sortedHistory.slice(
+        (historyPage - 1) * readingsPerPage,
+        historyPage * readingsPerPage
+    ).map((reading) => {
         const date = new Date(reading.recorded_at);
-        return `<tr><td>${date.toLocaleDateString()}</td><td>${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td><td>${reading.temperature} °C</td><td>${reading.ph}</td><td><span class="table-status ${statusFor(reading) === "Good" ? "good" : "warning"}">${statusFor(reading)}</span></td></tr>`;
+        const qualityStatus = statusFor(reading);
+        const isDemo = reading.status === "Demo";
+        const statusLabel = isDemo ? `Demo · ${qualityStatus}` : qualityStatus;
+        const statusClass = isDemo ? "demo" : qualityStatus === "Good" ? "good" : "warning";
+        return `<tr><td>${date.toLocaleDateString()}</td><td>${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td><td>${reading.temperature} °C</td><td>${reading.ph}</td><td><span class="table-status ${statusClass}">${statusLabel}</span></td></tr>`;
     }).join("");
     document.getElementById("table-empty").hidden = history.length > 0;
+    pagination.replaceChildren();
+    pagination.hidden = pageCount <= 1;
+    if (pageCount <= 1) return;
+
+    const addPageButton = (label, page, options = {}) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "readings-page-button";
+        button.textContent = label;
+        if (options.label) button.setAttribute("aria-label", options.label);
+        if (options.current) button.setAttribute("aria-current", "page");
+        if (options.disabled) button.disabled = true;
+        button.addEventListener("click", () => {
+            historyPage = page;
+            updateTable(history);
+        });
+        pagination.appendChild(button);
+    };
+
+    addPageButton("‹", historyPage - 1, {
+        label: "Previous page",
+        disabled: historyPage === 1
+    });
+
+    let visiblePages;
+    if (pageCount <= 7) {
+        visiblePages = Array.from({ length: pageCount }, (_, index) => index + 1);
+    } else if (historyPage <= 4) {
+        visiblePages = [1, 2, 3, 4, 5, "…", pageCount];
+    } else if (historyPage >= pageCount - 3) {
+        visiblePages = [1, "…", pageCount - 4, pageCount - 3, pageCount - 2, pageCount - 1, pageCount];
+    } else {
+        visiblePages = [1, "…", historyPage - 1, historyPage, historyPage + 1, "…", pageCount];
+    }
+
+    visiblePages.forEach((page) => {
+        if (typeof page !== "number") {
+            const ellipsis = document.createElement("span");
+            ellipsis.className = "readings-page-ellipsis";
+            ellipsis.textContent = page;
+            ellipsis.setAttribute("aria-hidden", "true");
+            pagination.appendChild(ellipsis);
+            return;
+        }
+        addPageButton(String(page), page, { current: page === historyPage });
+    });
+
+    addPageButton("›", historyPage + 1, {
+        label: "Next page",
+        disabled: historyPage === pageCount
+    });
 }
 
 function applyFilters() {
-    const history = filterHistory(readHistory());
+    const history = filterHistory(sensorHistory);
     const parameters = selectedParameters();
     const hasData = history.length > 0;
     document.getElementById("history-count").textContent = `${history.length} reading${history.length === 1 ? "" : "s"}`;
-    document.getElementById("history-export-button").disabled = readHistory().length === 0;
+    document.getElementById("history-export-button").disabled = sensorHistory.length === 0;
     document.getElementById("history-empty").hidden = hasData;
     if (hasData) drawChart(history, parameters);
     updateLegend(parameters); updateSummary(history, parameters); updateTable(history);
-    updateReadingIndicators(history);
 }
 
 document.getElementById("history-export-button").addEventListener("click", async (event) => {
@@ -146,11 +192,7 @@ document.getElementById("history-export-button").addEventListener("click", async
     button.setAttribute("aria-busy", "true");
 
     try {
-        const response = await fetch("/historical/export", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ readings: readHistory() })
-        });
+        const response = await fetch("/historical/export");
         if (response.redirected) {
             throw new Error("Your session has expired. Sign in again to download historical data.");
         }
@@ -177,12 +219,16 @@ document.getElementById("history-export-button").addEventListener("click", async
         console.error("Unable to export historical readings:", error);
         window.alert(`Unable to download historical data: ${error.message}`);
     } finally {
-        button.disabled = readHistory().length === 0;
+        button.disabled = sensorHistory.length === 0;
         button.removeAttribute("aria-busy");
     }
 });
 
-document.getElementById("history-filter").addEventListener("submit", (event) => { event.preventDefault(); applyFilters(); });
+document.getElementById("history-filter").addEventListener("submit", (event) => {
+    event.preventDefault();
+    historyPage = 1;
+    applyFilters();
+});
 async function loadHistory() {
     try {
         const response = await fetch("/api/readings/history");
@@ -195,16 +241,23 @@ async function loadHistory() {
             throw new Error("The history response has an invalid format.");
         }
 
-        if (history.length) {
-            localStorage.setItem(historyKey, JSON.stringify(history));
-            localStorage.setItem("shrimpGuardLatest", JSON.stringify(history[history.length - 1]));
-        }
+        sensorHistory = history;
     } catch (error) {
-        console.warn("Unable to load saved sensor history; showing browser history instead:", error);
+        console.error("Unable to load saved sensor history:", error);
+        sensorHistory = [];
+        document.getElementById("history-count").textContent = "Data unavailable";
+        document.getElementById("history-empty").textContent = "Unable to load sensor data. Please refresh or retry.";
+        document.getElementById("history-empty").hidden = false;
+        document.getElementById("table-empty").textContent = "Unable to load sensor data from the database.";
+        document.getElementById("table-empty").hidden = false;
+        document.getElementById("readings-body").replaceChildren();
+        document.getElementById("readings-pagination").hidden = true;
+        return;
     }
 
     applyFilters();
 }
 
 updateDeviceTime(); setInterval(updateDeviceTime, 1000); loadHistory();
-window.addEventListener("storage", applyFilters); window.addEventListener("resize", applyFilters);
+setInterval(loadHistory, 10000);
+window.addEventListener("resize", applyFilters);

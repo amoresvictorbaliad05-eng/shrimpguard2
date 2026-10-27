@@ -117,7 +117,7 @@
                 <button class="admin-dialog-close" type="submit" aria-label="Close"><svg class="ui-icon"><use href="#icon-x"></use></svg></button>
             </form>
         </div>
-        <form class="admin-user-form" method="post" action="{{ url_for('edit_user') }}">
+        <form id="edit-user-form" class="admin-user-form" method="post" action="{{ url_for('edit_user') }}">
             <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
             <input id="edit-user-current-email" name="current_email" type="hidden">
             <label for="edit-user-name">Name</label>
@@ -234,6 +234,7 @@
         const addUserDialog = document.getElementById("add-user-dialog");
         const cancelAddUser = document.getElementById("cancel-add-user");
         const editUserDialog = document.getElementById("edit-user-dialog");
+        const editUserForm = document.getElementById("edit-user-form");
         const cancelEditUser = document.getElementById("cancel-edit-user");
         const search = document.getElementById("user-search");
         const roleFilter = document.getElementById("user-role-filter");
@@ -255,6 +256,12 @@
             });
         });
         cancelEditUser.addEventListener("click", () => editUserDialog.close());
+        editUserForm.addEventListener("submit", (event) => {
+            const userName = document.getElementById("edit-user-name").value.trim();
+            if (!window.confirm(`Save these changes to ${userName}?`)) {
+                event.preventDefault();
+            }
+        });
 
         const filterUsers = () => {
             const query = search.value.trim().toLowerCase();

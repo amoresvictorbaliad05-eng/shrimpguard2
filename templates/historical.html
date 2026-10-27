@@ -64,17 +64,6 @@
             </label>
             <button type="submit">Apply</button>
         </form>
-        <div class="filter-indicators">
-            <div>
-                <p class="eyebrow">Selected period</p>
-                <p id="indicator-message">Apply filters to see reading indicators.</p>
-            </div>
-            <div id="reading-indicators" class="reading-indicators" aria-label="Reading indicators"></div>
-            <div class="indicator-legend">
-                <span><i class="indicator-dot good-dot"></i>Good reading</span>
-                <span><i class="indicator-dot bad-dot"></i>Bad reading</span>
-            </div>
-        </div>
     </section>
 
     <section class="historical-layout">
@@ -120,6 +109,9 @@
                 <h2>Historical Readings</h2>
             </div>
         </div>
+        <p id="demo-data-note" class="demo-data-note" hidden>
+            Demo readings are illustrative sample data, not live pond measurements.
+        </p>
         <div class="table-wrap">
             <table>
                 <thead>
@@ -129,6 +121,7 @@
             </table>
             <p id="table-empty" class="table-empty">No saved readings available.</p>
         </div>
+        <nav id="readings-pagination" class="readings-pagination" aria-label="Historical readings pages" hidden></nav>
     </section>
 </div>
 

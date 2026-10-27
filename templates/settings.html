@@ -50,7 +50,7 @@
                 <h2>Profile information</h2>
                 <p>Change the name and email associated with your account.</p>
             </div>
-            <form class="settings-form" method="post" action="{{ url_for('settings') }}">
+            <form id="profile-update-form" class="settings-form" method="post" action="{{ url_for('settings') }}">
                 <input type="hidden" name="csrf_token" value="{{ settings_csrf_token }}">
                 <input type="hidden" name="action" value="profile">
                 <label for="profile-name">Name</label>
@@ -59,7 +59,7 @@
                 <input id="profile-email" name="email" type="email" maxlength="255" value="{{ user.email }}" required>
                 <label for="profile-role">Role</label>
                 <input id="profile-role" type="text" value="{{ user.role }}" readonly>
-                <button class="settings-submit" type="submit">Save Profile</button>
+                <button id="save-profile-button" class="settings-submit" type="button">Save Profile</button>
             </form>
         </article>
 
@@ -82,5 +82,37 @@
         </article>
     </section>
 </main>
+<dialog id="profile-confirmation-dialog" class="admin-user-dialog" aria-labelledby="profile-confirmation-title">
+    <div class="admin-user-dialog-heading">
+        <h2 id="profile-confirmation-title">Update information?</h2>
+    </div>
+    <div class="profile-confirmation-content">
+        <p>Do you want to save your profile changes?</p>
+        <div class="profile-confirmation-actions">
+            <button id="cancel-profile-update" class="admin-user-cancel" type="button">No</button>
+            <button id="confirm-profile-update" class="admin-user-submit" type="button">Yes</button>
+        </div>
+    </div>
+</dialog>
+<script>
+    const profileForm = document.getElementById("profile-update-form");
+    const confirmationDialog = document.getElementById("profile-confirmation-dialog");
+
+    document.getElementById("save-profile-button").addEventListener("click", () => {
+        confirmationDialog.showModal();
+    });
+
+    document.getElementById("confirm-profile-update").addEventListener("click", () => {
+        if (profileForm.reportValidity()) {
+            confirmationDialog.close();
+            profileForm.requestSubmit();
+        }
+    });
+
+    document.getElementById("cancel-profile-update").addEventListener("click", () => {
+        confirmationDialog.close();
+        document.getElementById("save-profile-button").focus();
+    });
+</script>
 </body>
 </html>

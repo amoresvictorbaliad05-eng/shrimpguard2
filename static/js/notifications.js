@@ -1,5 +1,4 @@
-const readingKey = "shrimpGuardLatest";
-const historyKey = "shrimpGuardHistory";
+let notificationHistory = [];
 
 function getAlertData(reading) {
     const alerts = [];
@@ -34,10 +33,9 @@ function getAlertData(reading) {
 }
 
 function getRecentNotifications() {
-    const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
     const notifications = [];
 
-    history.forEach((reading) => {
+    notificationHistory.forEach((reading) => {
         const readingAlerts = getAlertData(reading);
         readingAlerts.forEach((alert) => {
             notifications.push({
@@ -52,10 +50,28 @@ function getRecentNotifications() {
         .slice(0, 7);
 }
 
-function renderNotifications() {
+async function renderNotifications() {
     const notificationContainer = document.getElementById("notification-content");
 
     if (!notificationContainer) {
+        return;
+    }
+
+    notificationContainer.innerHTML = '<div class="notification-empty">Loading sensor notifications...</div>';
+
+    try {
+        const response = await fetch("/api/readings/history");
+        if (!response.ok) {
+            throw new Error(`Sensor history request failed with status ${response.status}.`);
+        }
+        const history = await response.json();
+        if (!Array.isArray(history)) {
+            throw new Error("Sensor history response has an invalid format.");
+        }
+        notificationHistory = history;
+    } catch (error) {
+        console.error("Unable to load sensor notifications:", error);
+        notificationContainer.innerHTML = '<div class="notification-empty">Unable to load notifications from the sensors database. Please try again.</div>';
         return;
     }
 
@@ -104,15 +120,15 @@ function setupNotificationModal() {
         button.setAttribute("aria-expanded", "false");
     };
 
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
         if (backdrop.classList.contains("visible")) {
             closeNotifications();
             return;
         }
 
-        renderNotifications();
         backdrop.classList.add("visible");
         button.setAttribute("aria-expanded", "true");
+        await renderNotifications();
     });
 
     closeButton.addEventListener("click", () => {
@@ -157,8 +173,6 @@ function createNotificationModal() {
 function initializeNotifications() {
     createNotificationModal();
     setupNotificationModal();
-    renderNotifications();
 }
 
 initializeNotifications();
-window.addEventListener("storage", renderNotifications);

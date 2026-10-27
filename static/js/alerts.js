@@ -1,6 +1,3 @@
-const readingKey = "shrimpGuardLatest";
-const historyKey = "shrimpGuardHistory";
-
 function updateDeviceTime() {
     document.getElementById("time").textContent =
         new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -189,34 +186,30 @@ async function loadAlertsData() {
             fetch("/api/readings/history")
         ]);
 
-        if (latestResponse.ok && historyResponse.ok) {
-            const reading = await latestResponse.json();
-            const history = await historyResponse.json();
-
-            updateSummaryCards(history, reading);
-            renderRecentNotifications(history);
-            renderAlertHistory(history);
-
-            document.getElementById("critical-alerts-count").textContent = history.flatMap((item) => getAlertData(item)).filter((alert) => alert.severity === "Critical").length;
-            document.getElementById("warning-alerts-count").textContent = history.flatMap((item) => getAlertData(item)).filter((alert) => alert.severity === "Warning").length;
-            return;
+        if (!latestResponse.ok || !historyResponse.ok) {
+            throw new Error(`Sensor API returned ${latestResponse.status} / ${historyResponse.status}.`);
         }
+        const reading = await latestResponse.json();
+        const history = await historyResponse.json();
+        if (!Array.isArray(history)) {
+            throw new Error("Sensor history response has an invalid format.");
+        }
+
+        updateSummaryCards(history, reading);
+        renderRecentNotifications(history);
+        renderAlertHistory(history);
+        document.getElementById("critical-alerts-count").textContent = history.flatMap((item) => getAlertData(item)).filter((alert) => alert.severity === "Critical").length;
+        document.getElementById("warning-alerts-count").textContent = history.flatMap((item) => getAlertData(item)).filter((alert) => alert.severity === "Warning").length;
     } catch (error) {
-        console.warn("Falling back to localStorage for alerts data:", error);
+        console.error("Unable to load sensor data for alerts:", error);
+        document.getElementById("active-alerts").innerHTML = '<div class="status-box">Unable to load sensor data. Please refresh or retry.</div>';
+        document.getElementById("recent-notifications").innerHTML = '<div class="status-box">Unable to load sensor data. Please refresh or retry.</div>';
+        document.getElementById("alert-history-body").innerHTML = '<tr><td colspan="9" class="table-empty">Unable to load sensor data.</td></tr>';
+        document.getElementById("notification-status").innerHTML = '<div class="status-box">Sensor database unavailable.</div>';
     }
-
-    const reading = JSON.parse(localStorage.getItem(readingKey) || "null");
-    const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-
-    updateSummaryCards(history, reading);
-    renderRecentNotifications(history);
-    renderAlertHistory(history);
-
-    document.getElementById("critical-alerts-count").textContent = history.flatMap((item) => getAlertData(item)).filter((alert) => alert.severity === "Critical").length;
-    document.getElementById("warning-alerts-count").textContent = history.flatMap((item) => getAlertData(item)).filter((alert) => alert.severity === "Warning").length;
 }
 
 updateDeviceTime();
 setInterval(updateDeviceTime, 1000);
 loadAlertsData();
-window.addEventListener("storage", loadAlertsData);
+setInterval(loadAlertsData, 10000);
