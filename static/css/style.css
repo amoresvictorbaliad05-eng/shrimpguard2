@@ -1994,23 +1994,72 @@ header p {
     color: #b53e39;
 }
 
-.admin-edit-user {
+.admin-user-actions {
     align-items: center;
-    background: #fff;
-    border: 1px solid #dce5ed;
-    border-radius: 5px;
-    color: #315779;
-    cursor: pointer;
-    display: inline-flex;
-    font: inherit;
-    height: 30px;
-    justify-content: center;
-    padding: 0;
-    width: 30px;
+    display: flex;
+    gap: 6px;
 }
 
-.admin-edit-user span {
-    font-size: 15px;
+.admin-delete-user-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.admin-user-action {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 5px;
+    color: #718184;
+    cursor: pointer;
+    display: inline-flex;
+    height: 28px;
+    justify-content: center;
+    padding: 0;
+    width: 26px;
+}
+
+.admin-user-action:hover {
+    background: #edf2f2;
+    color: #184e42;
+}
+
+.admin-user-action .ui-icon {
+    height: 15px;
+    width: 15px;
+}
+
+.admin-delete-user:hover {
+    background: #fff0ef;
+    color: #b53e39;
+}
+
+.admin-user-details {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+    padding: 18px 20px 20px;
+}
+
+.admin-user-details div {
+    display: grid;
+    gap: 4px;
+}
+
+.admin-user-details dt {
+    color: #718184;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.admin-user-details dd {
+    color: #263b4f;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.admin-user-confirm-dialog {
+    max-width: 380px;
 }
 
 .admin-user-footer {

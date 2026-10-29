@@ -11,7 +11,7 @@ from xml.sax.saxutils import escape
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, send_file, session, url_for
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import insert, select, text
+from sqlalchemy import func, insert, select, text
 from sqlalchemy.engine import URL
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -573,6 +573,43 @@ def edit_user():
                 session["user_id"] = email
             session["admin_csrf_token"] = secrets.token_urlsafe(32)
             flash("User updated successfully.", "success")
+
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/users/delete", methods=["POST"])
+@role_required("Admin")
+def delete_user():
+    expected_token = session.get("admin_csrf_token", "")
+    submitted_token = request.form.get("csrf_token", "")
+    if not expected_token or not hmac.compare_digest(expected_token, submitted_token):
+        flash("Your request expired. Please try again.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    email = request.form.get("email", "").strip().lower()
+    user = db.session.get(User, email)
+    if user is None:
+        flash("That user could not be found.", "error")
+        return redirect(url_for("admin_dashboard"))
+    if session.get("user_id") == email:
+        flash("You cannot delete your current account.", "error")
+        return redirect(url_for("admin_dashboard"))
+    if user.role.strip().casefold() == "admin":
+        admin_count = User.query.filter(func.lower(User.role) == "admin").count()
+        if admin_count <= 1:
+            flash("The last administrator account cannot be deleted.", "error")
+            return redirect(url_for("admin_dashboard"))
+
+    try:
+        db.session.delete(user)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        app.logger.exception("Unable to delete user account.")
+        flash("The user could not be deleted. Please try again.", "error")
+    else:
+        session["admin_csrf_token"] = secrets.token_urlsafe(32)
+        flash("User deleted successfully.", "success")
 
     return redirect(url_for("admin_dashboard"))
 
