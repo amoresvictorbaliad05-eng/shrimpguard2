@@ -7,15 +7,83 @@ import pandas as pd
 
 MODEL_FEATURES = ("Water Temperature (°C)", "pH")
 MODEL_CLASSES = ("Critical", "Optimal", "Warning")
-RECOMMENDATION_MESSAGES = {
-    "Critical": "The model classified water quality as critical. Inspect pond conditions and take corrective action promptly.",
-    "Warning": "The model detected a water quality warning. Review conditions and monitor closely.",
-    "Optimal": "The model classified water quality as optimal. Continue routine monitoring.",
-}
+TEMPERATURE_RANGE = (26, 32)
+PH_RANGE = (7.5, 8.5)
 
 
 class RecommendationModelError(RuntimeError):
     pass
+
+
+def _reading_findings(temperature, ph):
+    findings = []
+    minimum_temperature, maximum_temperature = TEMPERATURE_RANGE
+    minimum_ph, maximum_ph = PH_RANGE
+
+    if temperature < minimum_temperature:
+        findings.append(
+            f"Temperature is {temperature:g} °C, below the "
+            f"{minimum_temperature}–{maximum_temperature} °C reference range"
+        )
+    elif temperature > maximum_temperature:
+        findings.append(
+            f"Temperature is {temperature:g} °C, above the "
+            f"{minimum_temperature}–{maximum_temperature} °C reference range"
+        )
+
+    if ph < minimum_ph:
+        findings.append(
+            f"pH is {ph:g}, below the {minimum_ph}–{maximum_ph} reference range"
+        )
+    elif ph > maximum_ph:
+        findings.append(
+            f"pH is {ph:g}, above the {minimum_ph}–{maximum_ph} reference range"
+        )
+
+    return findings
+
+
+def _build_recommendation(classification, temperature, ph):
+    findings = _reading_findings(temperature, ph)
+    if classification == "Critical":
+        if findings:
+            details = "; ".join(findings)
+            recommendation = (
+                f"The model predicts Critical. {details}. Verify the readings and "
+                "follow your farm's protocol to correct conditions gradually."
+            )
+        else:
+            recommendation = (
+                "The model predicts Critical, although temperature and pH are within "
+                "their reference ranges. Verify both readings and inspect other pond "
+                "conditions promptly."
+        )
+    elif classification == "Warning":
+        if findings:
+            details = "; ".join(findings)
+            recommendation = (
+                f"The model predicts Warning. {details}. Recheck the measurements "
+                "and follow your farm's protocol."
+            )
+        else:
+            recommendation = (
+                "The model predicts Warning, although temperature and pH are within "
+                "their reference ranges. Repeat the measurements and continue close "
+                "monitoring."
+            )
+    elif findings:
+        details = "; ".join(findings)
+        recommendation = (
+            f"The model predicts Optimal, but {details}. Verify the measurements "
+            "and do not treat this result as an all-clear."
+        )
+    else:
+        recommendation = (
+            "The model predicts Optimal. Keep conditions stable and continue routine "
+            "monitoring."
+        )
+
+    return {"classification": classification, "recommendation": recommendation}
 
 
 @lru_cache(maxsize=1)
@@ -60,10 +128,9 @@ def predict_recommendation(temperature, ph):
             "Unable to generate a water quality recommendation."
         ) from error
 
-    message = RECOMMENDATION_MESSAGES.get(classification)
-    if message is None:
+    if classification not in MODEL_CLASSES:
         raise RecommendationModelError(
             "The model returned an unsupported water quality classification."
         )
 
-    return {"classification": classification, "recommendation": message}
+    return _build_recommendation(classification, temperature, ph)
