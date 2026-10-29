@@ -69,35 +69,44 @@ function drawTrendChart(history) {
     });
 }
 
-function updateRecommendations(reading) {
+function updateRecommendations(reading, recommendation) {
     const recommendationsList = document.getElementById("monitoring-recommendations");
-    const recommendations = [];
 
     if (!reading) {
         recommendationsList.innerHTML = "<li>No reading available yet. Submit dashboard readings to receive AI recommendations.</li>";
         return;
     }
 
-    if (reading.temperature < 26) {
-        recommendations.push('<svg class="ui-icon"><use href="#icon-thermometer"></use></svg> Temperature is below the ideal range. Consider adjusting pond heating or reducing cooling to stabilize conditions.');
-    } else if (reading.temperature > 32) {
-        recommendations.push('<svg class="ui-icon"><use href="#icon-thermometer"></use></svg> Temperature is above the ideal range. Increase aeration and consider cooling measures to reduce stress on shrimp.');
-    }
-
-    if (reading.ph < 7.5) {
-        recommendations.push('<svg class="ui-icon"><use href="#icon-droplet"></use></svg> pH is too low. Add buffering agents to raise pH toward the recommended range.');
-    } else if (reading.ph > 8.5) {
-        recommendations.push('<svg class="ui-icon"><use href="#icon-droplet"></use></svg> pH is too high. Check the water source and apply corrective treatment to bring pH back down.');
-    }
-
-    if (recommendations.length === 0) {
-        recommendationsList.innerHTML = '<li><svg class="ui-icon"><use href="#icon-check-circle"></use></svg> No abnormal readings detected. Continue regular monitoring and keep the current conditions stable.</li>';
+    if (!recommendation) {
+        recommendationsList.textContent = "";
+        const item = document.createElement("li");
+        item.textContent = "AI recommendations are temporarily unavailable.";
+        recommendationsList.appendChild(item);
         return;
     }
 
-    recommendationsList.innerHTML = recommendations
-        .map((item) => `<li>${item}</li>`)
-        .join("");
+    recommendationsList.textContent = "";
+    const item = document.createElement("li");
+    item.textContent = `${recommendation.classification}: ${recommendation.recommendation}`;
+    recommendationsList.appendChild(item);
+}
+
+async function loadRecommendation(reading) {
+    const response = await fetch("/api/recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ temperature: reading.temperature, ph: reading.ph })
+    });
+    if (!response.ok) {
+        throw new Error(`Recommendation API returned ${response.status}.`);
+    }
+
+    const recommendation = await response.json();
+    if (typeof recommendation.classification !== "string" ||
+        typeof recommendation.recommendation !== "string") {
+        throw new Error("Recommendation response has an invalid format.");
+    }
+    return recommendation;
 }
 
 async function loadMonitoringData() {
@@ -130,7 +139,12 @@ async function loadMonitoringData() {
 
             emptyMessage.hidden = true;
             updateSummary(latest);
-            updateRecommendations(latest);
+            try {
+                updateRecommendations(latest, await loadRecommendation(latest));
+            } catch (error) {
+                console.error("Unable to load AI recommendations:", error);
+                updateRecommendations(latest, null);
+            }
             document.getElementById("trend-count").textContent = `${history.length} reading${history.length === 1 ? "" : "s"}`;
             drawTrendChart(history);
             return;

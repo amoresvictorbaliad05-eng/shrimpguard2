@@ -16,6 +16,8 @@ from sqlalchemy.engine import URL
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from recommendations import RecommendationModelError, predict_recommendation
+
 app = Flask(__name__)
 
 
@@ -266,6 +268,28 @@ def latest_reading():
     if not reading:
         return jsonify(None)
     return jsonify(serialize_sensor_reading(reading))
+
+
+@app.route("/api/recommendations", methods=["POST"])
+@role_required("Client")
+def create_recommendation():
+    payload = request.get_json(silent=True) or {}
+    if "temperature" not in payload or "ph" not in payload:
+        return jsonify({"error": "Temperature and pH are required."}), 400
+
+    try:
+        temperature = float(payload["temperature"])
+        ph = float(payload["ph"])
+    except (TypeError, ValueError):
+        return jsonify({"error": "Temperature and pH must be valid numbers."}), 400
+    if not math.isfinite(temperature) or not math.isfinite(ph):
+        return jsonify({"error": "Temperature and pH must be finite numbers."}), 400
+
+    try:
+        return jsonify(predict_recommendation(temperature, ph))
+    except RecommendationModelError:
+        app.logger.exception("Unable to generate a water quality recommendation.")
+        return jsonify({"error": "AI recommendations are temporarily unavailable."}), 503
 
 
 @app.route("/api/readings/history")

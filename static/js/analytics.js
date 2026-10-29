@@ -91,7 +91,7 @@ function showUnavailable() {
     document.getElementById("ph-status").textContent = "Sensor data unavailable";
 }
 
-function renderAnalytics(reading, history) {
+function renderAnalytics(reading, history, recommendation) {
     if (!reading || history.length === 0) {
         showNoReadings();
         return;
@@ -101,10 +101,6 @@ function renderAnalytics(reading, history) {
     const latestDate = new Date(reading.recorded_at);
     const qualityAverage = Math.round(history.reduce((sum, item) => sum + getReadingQuality(item), 0) / history.length);
     const activeAlerts = counts.critical + counts.warnings;
-    const actions = [];
-    if (reading.temperature < 26 || reading.temperature > 32) actions.push("Adjust temperature");
-    if (reading.ph < 7.5 || reading.ph > 8.5) actions.push("Adjust pH");
-    const recommendation = actions.length ? actions.join(" and ") : "No action needed";
     const outsideRange = reading.temperature < 26 || reading.temperature > 32 ||
         reading.ph < 7.5 || reading.ph > 8.5;
     document.getElementById("analytics-demo-note").hidden =
@@ -116,9 +112,12 @@ function renderAnalytics(reading, history) {
     document.getElementById("analytics-active-alerts").textContent = String(activeAlerts);
     document.getElementById("analytics-alert-summary").textContent =
         `${counts.critical} critical, ${counts.warnings} warning conditions in saved readings`;
-    document.getElementById("analytics-recommended-action").textContent = recommendation;
+    document.getElementById("analytics-recommended-action").textContent =
+        recommendation ? recommendation.classification : "Unavailable";
     document.getElementById("analytics-action-summary").textContent =
-        `Latest: ${reading.temperature} °C, pH ${reading.ph}`;
+        recommendation
+            ? recommendation.recommendation
+            : "AI recommendations are temporarily unavailable.";
     document.getElementById("analytics-monitoring-status").textContent = "Database";
     document.getElementById("analytics-last-update").textContent = latestDate.toLocaleString();
     document.getElementById("analytics-health-heading").textContent = outsideRange
@@ -132,7 +131,7 @@ function renderAnalytics(reading, history) {
         `<li>${counts.critical} critical and ${counts.warnings} warning conditions across saved readings.</li>`
     ].join("");
     document.getElementById("analytics-recommended-operations").innerHTML = [
-        `<li>${actions.length ? `Address latest out-of-range values: ${actions.join(" and ").toLowerCase()}.` : "Keep temperature and pH within their recommended ranges."}</li>`,
+        `<li>${recommendation ? recommendation.recommendation : "AI recommendations are temporarily unavailable."}</li>`,
         `<li>Review the ${history.length} saved sensor readings and continue regular monitoring.</li>`
     ].join("");
     document.getElementById("analytics-report-quality").textContent = `${qualityAverage} / 100`;
@@ -142,6 +141,24 @@ function renderAnalytics(reading, history) {
 
     setAdjustment("temperature", reading.temperature, 26, 32);
     setAdjustment("ph", reading.ph, 7.5, 8.5);
+}
+
+async function loadRecommendation(reading) {
+    const response = await fetch("/api/recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ temperature: reading.temperature, ph: reading.ph })
+    });
+    if (!response.ok) {
+        throw new Error(`Recommendation API returned ${response.status}.`);
+    }
+
+    const recommendation = await response.json();
+    if (typeof recommendation.classification !== "string" ||
+        typeof recommendation.recommendation !== "string") {
+        throw new Error("Recommendation response has an invalid format.");
+    }
+    return recommendation;
 }
 
 async function loadSensorAnalytics() {
@@ -156,7 +173,15 @@ async function loadSensorAnalytics() {
 
         const [reading, history] = await Promise.all([latestResponse.json(), historyResponse.json()]);
         if (!Array.isArray(history)) throw new Error("Sensor history response has an invalid format.");
-        renderAnalytics(reading, history);
+        let recommendation = null;
+        if (reading && history.length > 0) {
+            try {
+                recommendation = await loadRecommendation(reading);
+            } catch (error) {
+                console.error("Unable to load AI recommendations for analytics:", error);
+            }
+        }
+        renderAnalytics(reading, history, recommendation);
     } catch (error) {
         console.error("Unable to load sensor data for analytics:", error);
         showUnavailable();
